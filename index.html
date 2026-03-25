@@ -251,7 +251,7 @@ Rules:
 - 3-5 pages appropriate to the site type
 - Each page is a COMPLETE HTML file with <!DOCTYPE html>
 - Each page has: <link rel="stylesheet" href="shared.css"> in head
-- Each page has: <script src="shared.js"></script> before </body>
+- Each page has: <scr\ipt src="shared.js"><\/scr\ipt> before <\/body>
 - Navigation on EVERY page links correctly to all other pages
 - Use Google Fonts in each page head
 - shared.css: stunning, comprehensive styles — CSS variables, responsive design, smooth animations, hover effects, mobile-first
@@ -381,7 +381,7 @@ function renderPreview(){
   let html=S.pages[S.current]||'';
   // Inject shared CSS/JS inline for preview
   if(S.css)html=html.replace('</head>',`<style>${S.css}</style></head>`);
-  if(S.js)html=html.replace('</body>',`<script>${S.js}<\/script></body>`);
+  if(S.js)html=html.replace('</body>',`<scr'+'ipt>${S.js}<\/scr'+'ipt></body>`);
   iframe.contentDocument.open();
   iframe.contentDocument.write(html);
   iframe.contentDocument.close();
@@ -472,7 +472,7 @@ function downloadPage(){
   if(!S.current||!S.pages[S.current])return;
   let html=S.pages[S.current];
   if(S.css)html=html.replace('</head>',`<style>${S.css}</style></head>`);
-  if(S.js)html=html.replace('</body>',`<script>${S.js}<\/script></body>`);
+  if(S.js)html=html.replace('</body>',`<scr'+'ipt>${S.js}<\/scr'+'ipt></body>`);
   const a=document.createElement('a');
   a.href='data:text/html;charset=utf-8,'+encodeURIComponent(html);
   a.download=S.current;a.click();
