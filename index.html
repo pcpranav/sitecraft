@@ -216,11 +216,23 @@ const SITE_ID='44b74a32-9afd-47d0-8e8a-9cac5affc641';
 });
 
 async function callClaude(system,user,maxTokens=8000){
-  const r=await fetch('https://api.anthropic.com/v1/messages',{
+  // Send admin token if stored — bypasses rate limit for the site owner
+  const adminToken=localStorage.getItem('WEBCRAFT_ADMIN_TOKEN')||'';
+  const headers={'Content-Type':'application/json'};
+  if(adminToken)headers['X-Admin-Token']=adminToken;
+  const r=await fetch('/api/claude',{
     method:'POST',
-    headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-calls':'true'},
+    headers,
     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,system,messages:[{role:'user',content:user}]})
   });
+  if(r.status===429){
+    const d=await r.json();
+    throw new Error(d.error?.message||'Rate limit reached. Please wait before trying again.');
+  }
+  if(!r.ok){
+    const d=await r.json().catch(()=>({}));
+    throw new Error(d.error?.message||'Request failed ('+r.status+')');
+  }
   const d=await r.json();
   if(d.error)throw new Error(d.error.message);
   return d.content?.find(b=>b.type==='text')?.text||'';
