@@ -3,558 +3,1009 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Sitecraft v2 — AI Website Builder</title>
+<title>Webcraft Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Lora:ital@0;1&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#fafaf9;--bg2:#f3f2f0;--bg3:#eceae6;
-  --text:#1a1917;--text2:#6b6860;--text3:#a09e99;
-  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.18);--border3:rgba(0,0,0,0.3);
-  --radius:8px;--radius-lg:12px;
-  --green:#16a34a;--amber:#d97706;--red:#dc2626;
+  --night:#0e0e0f;
+  --ink:#161618;
+  --card:#1c1c1f;
+  --lift:#242428;
+  --edge:#2e2e33;
+  --mute:#3a3a40;
+  --dim:#666672;
+  --mid:#9999a8;
+  --soft:#c8c8d8;
+  --cream:#eeeef2;
+  --white:#f8f8fc;
+  --accent:#e8d5a3;
+  --accent2:#a3c4e8;
+  --green:#6ee7b7;
+  --red:#f87171;
+  --amber:#fbbf24;
+  --r:8px;--rl:12px;
+  --font-display:'Syne',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --font-serif:'Lora',serif;
 }
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-.header{padding:.85rem 1.25rem;border-bottom:.5px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--bg);flex-shrink:0}
-.logo{font-family:'Instrument Serif',serif;font-size:19px;letter-spacing:-.3px}
-.logo em{font-style:italic;color:var(--text2)}
-.badge{font-size:10px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:20px;background:var(--bg2);border:.5px solid var(--border);color:var(--text2);letter-spacing:.05em}
-.hdr-right{margin-left:auto;display:flex;align-items:center;gap:7px}
-.net-status{font-size:11px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:5px;color:var(--text3);padding:3px 9px;border:.5px solid var(--border);border-radius:20px;background:var(--bg2)}
-.sdot{width:6px;height:6px;border-radius:50%;background:#ccc;display:inline-block;flex-shrink:0}
-.sdot.live{background:var(--green)}
-.sdot.loading{background:var(--amber);animation:blink 1s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.main{display:flex;flex:1;overflow:hidden}
-.sidebar{width:272px;flex-shrink:0;border-right:.5px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
-.sb-top{padding:.9rem;display:flex;flex-direction:column;gap:.8rem;border-bottom:.5px solid var(--border);flex-shrink:0}
-.sb-scroll{flex:1;overflow-y:auto;padding:.9rem;display:flex;flex-direction:column;gap:.9rem}
-.label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:5px}
-textarea,input[type=text]{width:100%;font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 11px;border:.5px solid var(--border2);border-radius:var(--radius);background:white;color:var(--text);outline:none;transition:border-color .15s;line-height:1.55}
-textarea{resize:none;height:95px}
-textarea:focus,input[type=text]:focus{border-color:var(--border3)}
-.btn{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:7px 13px;border-radius:var(--radius);border:.5px solid var(--border2);background:transparent;color:var(--text);cursor:pointer;transition:all .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
-.btn:hover{background:var(--bg2)}
-.btn:disabled{opacity:.38;cursor:not-allowed}
-.btn-p{background:var(--text)!important;color:var(--bg)!important;border-color:var(--text)!important}
-.btn-p:hover{opacity:.85}
-.btn-g{background:var(--green)!important;color:white!important;border-color:var(--green)!important}
-.btn-g:hover{opacity:.85}
-.btn-sm{font-size:12px;padding:5px 10px}
-.btn-full{width:100%;justify-content:center}
-.row{display:flex;gap:6px}
-.chips{display:flex;flex-wrap:wrap;gap:5px}
-.chip{font-size:11px;padding:3px 9px;border-radius:20px;border:.5px solid var(--border);background:var(--bg2);color:var(--text2);cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif}
-.chip:hover{border-color:var(--border2);color:var(--text)}
-.pg-list{display:flex;flex-direction:column;gap:3px}
-.pg-item{font-size:12px;padding:5px 9px;border-radius:var(--radius);color:var(--text2);cursor:pointer;border:.5px solid transparent;display:flex;align-items:center;justify-content:space-between;transition:all .12s}
-.pg-item:hover,.pg-item.active{background:var(--bg2);border-color:var(--border)}
-.pg-item.active{border-color:var(--border2);color:var(--text)}
-.pg-left{display:flex;align-items:center;gap:6px;min-width:0;flex:1;overflow:hidden}
-.pgdot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0}
-.pg-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'DM Mono',monospace;font-size:11px}
-.pg-del{font-size:11px;padding:1px 5px;border-radius:4px;opacity:0;background:none;border:none;cursor:pointer;color:var(--text3);transition:all .12s;flex-shrink:0}
-.pg-item:hover .pg-del{opacity:1}
-.pg-del:hover{color:var(--red);background:#fee2e2}
-.file-tree{display:flex;flex-direction:column;gap:2px}
-.fe{font-size:11px;font-family:'DM Mono',monospace;padding:4px 8px;border-radius:4px;color:var(--text2);display:flex;align-items:center;gap:6px;cursor:pointer;transition:background .12s}
-.fe:hover,.fe.active{background:var(--bg2)}
-.fe.active{color:var(--text)}
-.fe-html{color:#e4660a}.fe-css{color:#2563eb}.fe-js{color:#d97706}
-.h-list{display:flex;flex-direction:column;gap:3px}
-.hi{font-size:12px;padding:5px 9px;border-radius:var(--radius);color:var(--text2);cursor:pointer;border:.5px solid transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all .12s}
-.hi:hover,.hi.active{background:var(--bg2);border-color:var(--border)}
-.preview{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.toolbar{display:flex;align-items:center;gap:7px;padding:.6rem 1rem;border-bottom:.5px solid var(--border);flex-shrink:0;background:var(--bg);min-height:42px}
-.tls{display:flex;gap:4px;flex-shrink:0}
-.tl{width:10px;height:10px;border-radius:50%;background:var(--border2)}
-.url-bar{flex:1;height:26px;font-family:'DM Mono',monospace;font-size:11px;padding:0 10px;border:.5px solid var(--border);border-radius:20px;background:var(--bg2);color:var(--text2);outline:none;min-width:0}
-.tabs{display:flex;gap:2px;overflow-x:auto;max-width:340px;flex-shrink:0}
-.tabs::-webkit-scrollbar{height:0}
-.tab{font-size:11px;font-family:'DM Mono',monospace;padding:4px 9px;border-radius:20px;border:.5px solid transparent;background:transparent;color:var(--text3);cursor:pointer;white-space:nowrap;transition:all .12s}
-.tab:hover{color:var(--text2)}
-.tab.active{background:var(--bg2);border-color:var(--border);color:var(--text)}
-#frameWrap{flex:1;overflow:auto;background:white;position:relative}
-iframe{width:100%;border:none;display:block}
-.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;color:var(--text3);padding:2rem;text-align:center}
-.empty h3{font-family:'Instrument Serif',serif;font-size:22px;font-weight:400;color:var(--text2)}
-.empty p{font-size:13px;max-width:250px;line-height:1.6}
-.feat-list{display:flex;flex-direction:column;gap:5px;margin-top:4px;text-align:left;font-size:12px;color:var(--text3)}
-.loading-ov{position:absolute;inset:0;background:rgba(250,250,249,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;z-index:5}
-.spin{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--text);border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.ltxt{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2);animation:pulse 1.5s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.toast{position:fixed;bottom:18px;right:18px;background:var(--text);color:var(--bg);font-size:13px;padding:8px 15px;border-radius:var(--radius);z-index:999;opacity:0;transform:translateY(6px);transition:all .22s;pointer-events:none}
-.toast.show{opacity:1;transform:translateY(0)}
-.notice{font-size:11px;padding:7px 10px;border-radius:var(--radius);background:#fffbeb;border:.5px solid rgba(217,119,6,.2);color:var(--amber);line-height:1.5}
-.code-view{flex:1;overflow:auto;background:#1c1917;padding:1rem}
-pre{font-family:'DM Mono',monospace;font-size:12px;color:#e5e3df;white-space:pre-wrap;word-break:break-all;line-height:1.65}
-::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font-display);background:var(--night);color:var(--cream);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+
+/* ── SCROLLBARS ── */
+::-webkit-scrollbar{width:3px;height:3px}
 ::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--mute);border-radius:4px}
+
+/* ── HEADER ── */
+.header{
+  display:flex;align-items:center;gap:12px;
+  padding:0 1.25rem;height:52px;
+  border-bottom:1px solid var(--edge);
+  background:var(--ink);flex-shrink:0;
+  position:relative;z-index:20;
+}
+.logo{
+  font-size:15px;font-weight:800;letter-spacing:-.4px;
+  color:var(--white);display:flex;align-items:center;gap:8px;
+}
+.logo-mark{
+  width:26px;height:26px;background:var(--accent);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;color:var(--night);flex-shrink:0;
+}
+.logo-sub{font-size:10px;font-weight:500;color:var(--dim);font-family:var(--font-mono);letter-spacing:.06em;margin-top:1px}
+.hdr-mid{flex:1;display:flex;align-items:center;justify-content:center;gap:6px}
+.model-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 10px;border-radius:20px;
+  border:1px solid var(--edge);background:var(--card);
+  font-size:11px;font-family:var(--font-mono);color:var(--mid);
+  cursor:pointer;transition:all .15s;user-select:none;
+}
+.model-pill:hover{border-color:var(--mute);color:var(--soft)}
+.model-pill .pip{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.model-pill .pip.amber{background:var(--amber)}
+.model-pill .pip.blue{background:var(--accent2)}
+.hdr-right{display:flex;align-items:center;gap:6px;margin-left:auto}
+.hdr-btn{
+  padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;
+  font-family:var(--font-display);border:1px solid var(--edge);
+  background:transparent;color:var(--mid);cursor:pointer;transition:all .15s;
+}
+.hdr-btn:hover{border-color:var(--mute);color:var(--soft);background:var(--card)}
+.hdr-btn.accent{background:var(--accent);color:var(--night);border-color:var(--accent)}
+.hdr-btn.accent:hover{opacity:.85}
+.deploy-status{
+  font-size:10px;font-family:var(--font-mono);
+  display:flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:20px;
+  border:1px solid var(--edge);background:var(--card);color:var(--dim);
+}
+.pip{width:6px;height:6px;border-radius:50%;background:var(--mute);display:inline-block;flex-shrink:0}
+.pip.live{background:var(--green)}
+.pip.loading{background:var(--amber);animation:blink .9s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* ── LAYOUT ── */
+.workspace{display:flex;flex:1;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:260px;flex-shrink:0;
+  border-right:1px solid var(--edge);
+  display:flex;flex-direction:column;
+  background:var(--ink);overflow:hidden;
+}
+.sidebar-scroll{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:1.1rem}
+.sb-section{display:flex;flex-direction:column;gap:.5rem}
+.sb-label{
+  font-size:9px;font-family:var(--font-mono);letter-spacing:.12em;
+  text-transform:uppercase;color:var(--dim);padding:0 2px;
+}
+textarea,input[type=text],select{
+  font-family:var(--font-display);font-size:13px;
+  background:var(--card);color:var(--cream);
+  border:1px solid var(--edge);border-radius:var(--r);
+  padding:9px 11px;outline:none;width:100%;
+  transition:border-color .15s;
+}
+textarea{resize:none;line-height:1.55}
+textarea:focus,input[type=text]:focus,select:focus{border-color:var(--mute)}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666672'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+select option{background:var(--card);color:var(--cream)}
+#promptArea{height:108px}
+
+.btn{
+  font-family:var(--font-display);font-size:13px;font-weight:600;
+  padding:9px 14px;border-radius:var(--r);
+  border:1px solid var(--edge);background:transparent;
+  color:var(--soft);cursor:pointer;transition:all .15s;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  white-space:nowrap;
+}
+.btn:hover{background:var(--card);border-color:var(--mute)}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn-primary{background:var(--accent)!important;color:var(--night)!important;border-color:var(--accent)!important}
+.btn-primary:hover{opacity:.88!important;background:var(--accent)!important}
+.btn-green{background:var(--green)!important;color:var(--night)!important;border-color:var(--green)!important}
+.btn-green:hover{opacity:.88!important}
+.btn-full{width:100%}
+.btn-sm{font-size:11px;padding:5px 10px}
+.btn-row{display:flex;gap:6px}
+
+/* CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{
+  font-size:11px;font-family:var(--font-mono);
+  padding:3px 9px;border-radius:20px;
+  border:1px solid var(--edge);background:transparent;
+  color:var(--dim);cursor:pointer;transition:all .15s;
+}
+.chip:hover{border-color:var(--mute);color:var(--soft);background:var(--lift)}
+
+/* PAGE LIST */
+.pg-list{display:flex;flex-direction:column;gap:2px}
+.pg-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 9px;border-radius:var(--r);
+  border:1px solid transparent;cursor:pointer;transition:all .12s;
+}
+.pg-item:hover{background:var(--card);border-color:var(--edge)}
+.pg-item.active{background:var(--lift);border-color:var(--mute)}
+.pg-left{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
+.pg-fname{font-size:11px;font-family:var(--font-mono);color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pg-item.active .pg-fname{color:var(--cream)}
+.pg-dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0}
+.pg-del{background:none;border:none;color:var(--dim);cursor:pointer;padding:2px 5px;border-radius:4px;font-size:11px;opacity:0;transition:all .12s}
+.pg-item:hover .pg-del{opacity:1}
+.pg-del:hover{color:var(--red);background:rgba(248,113,113,.1)}
+
+/* FILE TREE */
+.file-tree{display:flex;flex-direction:column;gap:1px}
+.fe{
+  display:flex;align-items:center;gap:7px;
+  padding:5px 9px;border-radius:6px;
+  font-size:11px;font-family:var(--font-mono);
+  color:var(--dim);cursor:pointer;transition:all .12s;
+}
+.fe:hover,.fe.active{background:var(--card);color:var(--soft)}
+.fe.active{color:var(--cream)}
+.fe-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
+.fe-html .fe-dot{background:#e8834a}
+.fe-css .fe-dot{background:#5b9bd5}
+.fe-js .fe-dot{background:var(--amber)}
+
+/* HISTORY */
+.hist-list{display:flex;flex-direction:column;gap:2px}
+.hi{
+  padding:6px 9px;border-radius:var(--r);
+  font-size:11px;color:var(--dim);cursor:pointer;
+  border:1px solid transparent;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:all .12s;
+}
+.hi:hover{background:var(--card);border-color:var(--edge);color:var(--soft)}
+.hi.active{background:var(--lift);border-color:var(--mute);color:var(--cream)}
+
+/* NOTICE */
+.notice{
+  font-size:11px;font-family:var(--font-mono);
+  padding:8px 10px;border-radius:var(--r);
+  background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);
+  color:var(--amber);line-height:1.5;
+}
+.notice.green{background:rgba(110,231,183,.06);border-color:rgba(110,231,183,.2);color:var(--green)}
+.notice.blue{background:rgba(163,196,232,.06);border-color:rgba(163,196,232,.2);color:var(--accent2)}
+
+/* ── PREVIEW PANE ── */
+.preview{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--night)}
+.toolbar{
+  display:flex;align-items:center;gap:8px;
+  padding:0 1rem;height:44px;
+  border-bottom:1px solid var(--edge);
+  background:var(--ink);flex-shrink:0;
+}
+.tls{display:flex;gap:5px;flex-shrink:0}
+.tl{width:10px;height:10px;border-radius:50%;background:var(--mute)}
+.url-bar{
+  flex:1;height:26px;font-family:var(--font-mono);font-size:11px;
+  padding:0 10px;border:1px solid var(--edge);border-radius:20px;
+  background:var(--card);color:var(--dim);outline:none;min-width:0;
+}
+.page-tabs{display:flex;gap:2px;overflow-x:auto;max-width:400px;flex-shrink:0}
+.page-tabs::-webkit-scrollbar{height:0}
+.ptab{
+  font-size:10px;font-family:var(--font-mono);
+  padding:4px 10px;border-radius:20px;
+  border:1px solid transparent;color:var(--dim);
+  cursor:pointer;white-space:nowrap;transition:all .12s;background:transparent;
+}
+.ptab:hover{color:var(--soft)}
+.ptab.active{border-color:var(--edge);background:var(--card);color:var(--cream)}
+
+/* FRAME */
+#frameArea{flex:1;overflow:auto;background:#fff;position:relative}
+iframe{width:100%;border:none;display:block}
+
+/* EMPTY STATE */
+.empty{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:16px;padding:2rem;text-align:center;
+}
+.empty-glyph{
+  width:72px;height:72px;border-radius:16px;
+  background:var(--card);border:1px solid var(--edge);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;margin-bottom:4px;
+}
+.empty h2{font-size:22px;font-weight:700;color:var(--cream);letter-spacing:-.4px}
+.empty p{font-size:13px;color:var(--dim);max-width:280px;line-height:1.65;font-weight:400}
+.feat-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  margin-top:4px;width:100%;max-width:340px;
+}
+.feat-item{
+  background:var(--card);border:1px solid var(--edge);
+  border-radius:var(--r);padding:10px 12px;text-align:left;
+}
+.feat-item .fi-title{font-size:11px;font-weight:600;color:var(--soft);margin-bottom:2px}
+.feat-item .fi-desc{font-size:10px;font-family:var(--font-mono);color:var(--dim);line-height:1.4}
+
+/* LOADING */
+.loading-ov{
+  position:absolute;inset:0;
+  background:rgba(14,14,15,.88);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;z-index:10;
+  backdrop-filter:blur(4px);
+}
+.spinner{
+  width:32px;height:32px;
+  border:2px solid var(--edge);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin .65s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-label{
+  font-size:12px;font-family:var(--font-mono);
+  color:var(--mid);letter-spacing:.05em;
+  animation:pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.loading-progress{
+  display:flex;gap:4px;align-items:center;
+}
+.loading-step{
+  width:6px;height:6px;border-radius:50%;background:var(--mute);transition:background .3s;
+}
+.loading-step.done{background:var(--accent)}
+.loading-step.active{background:var(--accent);animation:blink .7s infinite}
+
+/* CODE VIEW */
+.code-view{flex:1;overflow:auto;background:var(--night);padding:1.25rem}
+pre{font-family:var(--font-mono);font-size:12px;color:var(--soft);white-space:pre-wrap;word-break:break-all;line-height:1.7}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:var(--lift);color:var(--cream);
+  font-size:12px;font-family:var(--font-mono);
+  padding:9px 18px;border-radius:20px;
+  border:1px solid var(--mute);
+  z-index:999;opacity:0;transition:all .25s;pointer-events:none;
+  white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* MODEL SWITCHER DROPDOWN */
+.model-menu{
+  position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  background:var(--card);border:1px solid var(--edge);border-radius:var(--rl);
+  padding:8px;z-index:100;min-width:280px;box-shadow:0 16px 48px rgba(0,0,0,.5);
+  display:none;
+}
+.model-menu.open{display:block}
+.mm-section{margin-bottom:8px}
+.mm-label{font-size:9px;font-family:var(--font-mono);color:var(--dim);letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;margin-bottom:2px}
+.mm-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:var(--r);cursor:pointer;transition:background .12s;
+}
+.mm-item:hover{background:var(--lift)}
+.mm-item.selected{background:var(--lift)}
+.mm-item-info{flex:1;min-width:0}
+.mm-item-name{font-size:12px;font-weight:600;color:var(--cream)}
+.mm-item-desc{font-size:10px;font-family:var(--font-mono);color:var(--dim);margin-top:1px}
+.mm-item-price{font-size:10px;font-family:var(--font-mono);color:var(--accent);flex-shrink:0}
+.mm-badge{font-size:9px;padding:2px 6px;border-radius:4px;font-family:var(--font-mono);flex-shrink:0}
+.mm-badge.free{background:rgba(110,231,183,.1);color:var(--green);border:1px solid rgba(110,231,183,.2)}
+.mm-badge.cheap{background:rgba(163,196,232,.1);color:var(--accent2);border:1px solid rgba(163,196,232,.2)}
+.mm-badge.best{background:rgba(232,213,163,.1);color:var(--accent);border:1px solid rgba(232,213,163,.2)}
+.mm-divider{height:1px;background:var(--edge);margin:6px 0}
+
+/* DEPLOY PANEL */
+.deploy-out{font-size:11px;font-family:var(--font-mono);color:var(--green);margin-top:6px;display:none}
+.deploy-out a{color:var(--green)}
+
+/* USAGE BAR */
+.usage-bar{
+  background:var(--card);border:1px solid var(--edge);border-radius:var(--r);
+  padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+.usage-label{font-size:10px;font-family:var(--font-mono);color:var(--dim)}
+.usage-val{font-size:10px;font-family:var(--font-mono);color:var(--soft)}
+.token-bar-wrap{flex:1;height:3px;background:var(--mute);border-radius:2px;overflow:hidden}
+.token-bar{height:100%;background:var(--accent);border-radius:2px;transition:width .4s;width:0%}
 </style>
 </head>
 <body>
 
+<!-- HEADER -->
 <div class="header">
-  <div class="logo">site<em>craft</em></div>
-  <div class="badge">v2 · AI</div>
+  <div class="logo">
+    <div class="logo-mark">W</div>
+    <div>
+      <div>Webcraft</div>
+      <div class="logo-sub">studio</div>
+    </div>
+  </div>
+
+  <div class="hdr-mid" style="position:relative">
+    <div class="model-pill" id="modelPill" onclick="toggleModelMenu()">
+      <span class="pip" id="modelPip"></span>
+      <span id="modelPillText">gemini-2.5-flash</span>
+      <span style="color:var(--dim);font-size:10px">▾</span>
+    </div>
+    <div class="model-menu" id="modelMenu">
+      <div class="mm-section">
+        <div class="mm-label">Google Gemini</div>
+        <div class="mm-item" data-provider="gemini" data-model="gemini-2.5-flash-preview-04-17" data-label="gemini-2.5-flash" data-pip="green" onclick="selectModel(this)">
+          <span class="pip" style="background:var(--green)"></span>
+          <div class="mm-item-info"><div class="mm-item-name">Gemini 2.5 Flash</div><div class="mm-item-desc">Fast, very cheap, great quality</div></div>
+          <span class="mm-badge cheap">~$0.001/gen</span>
+        </div>
+        <div class="mm-item" data-provider="gemini" data-model="gemini-2.5-pro-preview-03-25" data-label="gemini-2.5-pro" data-pip="blue" onclick="selectModel(this)">
+          <span class="pip" style="background:var(--accent2)"></span>
+          <div class="mm-item-info"><div class="mm-item-name">Gemini 2.5 Pro</div><div class="mm-item-desc">Best quality, moderate cost</div></div>
+          <span class="mm-badge best">~$0.01/gen</span>
+        </div>
+      </div>
+      <div class="mm-divider"></div>
+      <div class="mm-section">
+        <div class="mm-label">OpenAI</div>
+        <div class="mm-item" data-provider="openai" data-model="gpt-4.1-mini" data-label="gpt-4.1-mini" data-pip="blue" onclick="selectModel(this)">
+          <span class="pip" style="background:var(--accent2)"></span>
+          <div class="mm-item-info"><div class="mm-item-name">GPT-4.1 Mini</div><div class="mm-item-desc">Cheap & capable</div></div>
+          <span class="mm-badge cheap">~$0.002/gen</span>
+        </div>
+        <div class="mm-item" data-provider="openai" data-model="gpt-4.1" data-label="gpt-4.1" data-pip="blue" onclick="selectModel(this)">
+          <span class="pip" style="background:var(--accent2)"></span>
+          <div class="mm-item-info"><div class="mm-item-name">GPT-4.1</div><div class="mm-item-desc">Premium OpenAI model</div></div>
+          <span class="mm-badge best">~$0.02/gen</span>
+        </div>
+      </div>
+      <div class="mm-divider"></div>
+      <div class="mm-section">
+        <div class="mm-label">Anthropic</div>
+        <div class="mm-item" data-provider="anthropic" data-model="claude-haiku-4-5-20251001" data-label="claude-haiku" data-pip="amber" onclick="selectModel(this)">
+          <span class="pip" style="background:var(--amber)"></span>
+          <div class="mm-item-info"><div class="mm-item-name">Claude Haiku</div><div class="mm-item-desc">Cheapest Claude model</div></div>
+          <span class="mm-badge cheap">~$0.005/gen</span>
+        </div>
+        <div class="mm-item" data-provider="anthropic" data-model="claude-sonnet-4-20250514" data-label="claude-sonnet" data-pip="amber" onclick="selectModel(this)">
+          <span class="pip" style="background:var(--amber)"></span>
+          <div class="mm-item-info"><div class="mm-item-name">Claude Sonnet</div><div class="mm-item-desc">Best Claude quality</div></div>
+          <span class="mm-badge best">~$0.07/gen</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="hdr-right">
-    <div class="net-status"><span class="sdot" id="sdot"></span><span id="stext">not deployed</span></div>
-    <button class="btn btn-sm" id="viewToggle" onclick="toggleView()">{ } code</button>
-    <button class="btn btn-sm btn-g" id="deployHdrBtn" style="display:none" onclick="scrollToSection('deploySection')">deploy ↗</button>
+    <div class="deploy-status"><span class="pip" id="dPip"></span><span id="dText">not deployed</span></div>
+    <button class="hdr-btn" id="viewToggle" onclick="toggleView()">{ } code</button>
+    <button class="hdr-btn accent" id="deployHdrBtn" style="display:none" onclick="scrollDeploy()">deploy ↗</button>
   </div>
 </div>
 
-<div class="main">
+<!-- WORKSPACE -->
+<div class="workspace">
+
+  <!-- SIDEBAR -->
   <div class="sidebar">
-    <div class="sb-top">
-      <div>
-        <div class="label">your idea</div>
-        <textarea id="prompt" placeholder="A luxury real estate agency — property listings, agent profiles, contact form, dark gold aesthetic..."></textarea>
-      </div>
-      <div>
-        <div class="label">quick starts</div>
+    <div class="sidebar-scroll">
+
+      <!-- PROMPT -->
+      <div class="sb-section">
+        <div class="sb-label">idea</div>
+        <textarea id="promptArea" placeholder="A luxury watch brand — hero with video bg, product showcase, about us, and contact. Dark gold minimal aesthetic."></textarea>
         <div class="chips" id="chips"></div>
+        <button class="btn btn-primary btn-full" id="genBtn" onclick="generateSite()">
+          <span id="genBtnIcon">✦</span> <span id="genBtnText">Generate website</span>
+        </button>
       </div>
-      <button class="btn btn-p btn-full" id="genBtn" onclick="generateSite()">Generate website ↗</button>
-    </div>
 
-    <div class="sb-scroll" id="sbScroll">
+      <!-- TOKEN USAGE -->
+      <div id="usageSection" style="display:none">
+        <div class="usage-bar">
+          <div class="usage-label">tokens used</div>
+          <div class="token-bar-wrap"><div class="token-bar" id="tokenBar"></div></div>
+          <div class="usage-val" id="tokenCount">0</div>
+        </div>
+      </div>
 
-      <div id="pagesSection" style="display:none">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
-          <div class="label" style="margin:0">pages</div>
-          <button class="btn btn-sm" onclick="addPage()" style="padding:3px 9px;font-size:11px">+ add</button>
+      <!-- PAGES -->
+      <div class="sb-section" id="pagesSection" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div class="sb-label">pages</div>
+          <button class="btn btn-sm" onclick="addPage()" style="padding:2px 8px;font-size:10px">+ add</button>
         </div>
         <div class="pg-list" id="pgList"></div>
       </div>
 
-      <div id="filesSection" style="display:none">
-        <div class="label">files</div>
+      <!-- FILES -->
+      <div class="sb-section" id="filesSection" style="display:none">
+        <div class="sb-label">files</div>
         <div class="file-tree" id="fileTree"></div>
       </div>
 
-      <div id="iterSection" style="display:none">
-        <div class="label">refine current page</div>
-        <input type="text" id="iterInput" placeholder="Make hero bigger, change to navy blue..." />
-        <button class="btn btn-full" id="iterBtn" onclick="iterate()" style="margin-top:6px">apply changes ↗</button>
+      <!-- REFINE -->
+      <div class="sb-section" id="refineSection" style="display:none">
+        <div class="sb-label">refine page</div>
+        <input type="text" id="refineInput" placeholder="Make hero taller, add animations..." />
+        <button class="btn btn-full" id="refineBtn" onclick="refinePage()">apply changes ↗</button>
       </div>
 
-      <div id="exportSection" style="display:none">
-        <div class="label">export</div>
-        <div class="row">
+      <!-- EXPORT -->
+      <div class="sb-section" id="exportSection" style="display:none">
+        <div class="sb-label">export</div>
+        <div class="btn-row">
           <button class="btn btn-full btn-sm" onclick="downloadZip()">⬇ zip</button>
           <button class="btn btn-full btn-sm" onclick="downloadPage()">⬇ html</button>
         </div>
       </div>
 
-      <div id="deploySection" style="display:none">
-        <div class="label">deploy to netlify</div>
-        <div class="notice" style="margin-bottom:8px">⚡ Sites are live demos. Deploy pushes to your Netlify account.</div>
+      <!-- DEPLOY -->
+      <div class="sb-section" id="deploySection" style="display:none">
+        <div class="sb-label">deploy</div>
+        <div class="notice" style="margin-bottom:8px">Sites are live demos. Deploy pushes to Netlify.</div>
         <input type="text" id="siteNameInput" placeholder="my-site-name" style="margin-bottom:6px"/>
-        <button class="btn btn-g btn-full" id="deployBtn" onclick="doNetlifyDeploy()">deploy live ↗</button>
-        <div id="deployOut" style="margin-top:8px;font-size:12px;color:var(--green);display:none"></div>
+        <button class="btn btn-green btn-full" id="deployBtn" onclick="doNetlifyDeploy()">deploy live ↗</button>
+        <div class="deploy-out" id="deployOut"></div>
       </div>
 
-      <div>
-        <div class="label">history</div>
-        <div class="h-list" id="hList"><div style="font-size:12px;color:var(--text3)">No sites yet</div></div>
+      <!-- HISTORY -->
+      <div class="sb-section">
+        <div class="sb-label">history</div>
+        <div class="hist-list" id="histList">
+          <div style="font-size:11px;font-family:var(--font-mono);color:var(--dim);padding:4px 0">No sites yet</div>
+        </div>
       </div>
 
     </div>
   </div>
 
+  <!-- PREVIEW -->
   <div class="preview">
     <div class="toolbar">
       <div class="tls"><div class="tl"></div><div class="tl"></div><div class="tl"></div></div>
       <input class="url-bar" id="urlBar" value="your-site.netlify.app" readonly/>
-      <div class="tabs" id="pageTabs"></div>
+      <div class="page-tabs" id="pageTabs"></div>
     </div>
-    <div id="previewArea" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div id="previewArea" style="flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative">
       <div class="empty">
-        <div style="font-size:38px">⬡</div>
-        <h3>Describe your idea</h3>
-        <p>I'll build a complete multi-page website with beautiful design, ready to iterate, export, and deploy.</p>
-        <div class="feat-list">
-          <span>✦ Multi-page with working navigation</span>
-          <span>✦ Separate HTML, CSS &amp; JS files</span>
-          <span>✦ Refine any page with AI</span>
-          <span>✦ Download as ZIP or single HTML</span>
-          <span>✦ Deploy directly to Netlify</span>
+        <div class="empty-glyph">✦</div>
+        <h2>Build anything.</h2>
+        <p>Describe your idea — I'll generate a complete multi-page website with real design, working navigation, CSS & JS.</p>
+        <div class="feat-grid">
+          <div class="feat-item"><div class="fi-title">Multi-page</div><div class="fi-desc">Full site with nav</div></div>
+          <div class="feat-item"><div class="fi-title">CSS + JS</div><div class="fi-desc">Separate files</div></div>
+          <div class="feat-item"><div class="fi-title">Iterate</div><div class="fi-desc">Refine any page</div></div>
+          <div class="feat-item"><div class="fi-title">Export</div><div class="fi-desc">ZIP or single HTML</div></div>
         </div>
       </div>
     </div>
   </div>
+
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
+// ── STATE ────────────────────────────────────────────────────────────────────
 const S = {
-  pages:{}, css:'', js:'',
-  current:'index.html',
-  view:'preview',
-  history:[],
-  desc:''
+  pages: {}, css: '', js: '',
+  current: 'index.html',
+  view: 'preview',
+  history: [],
+  desc: '',
+  totalTokens: 0,
+  provider: 'gemini',
+  model: 'gemini-2.5-flash-preview-04-17',
+  modelLabel: 'gemini-2.5-flash',
+  modelPip: 'green',
 };
+const SITE_ID = '6586eb3b-2b0b-4a9b-9912-6f9a8370dc61';
 
-const SITE_ID='44b74a32-9afd-47d0-8e8a-9cac5affc641';
+// ── MODEL SWITCHER ────────────────────────────────────────────────────────────
+function toggleModelMenu() {
+  document.getElementById('modelMenu').classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.hdr-mid')) document.getElementById('modelMenu').classList.remove('open');
+});
+function selectModel(el) {
+  S.provider = el.dataset.provider;
+  S.model = el.dataset.model;
+  S.modelLabel = el.dataset.label;
+  S.modelPip = el.dataset.pip;
+  document.getElementById('modelPillText').textContent = S.modelLabel;
+  const pip = document.getElementById('modelPip');
+  pip.className = 'pip';
+  if (S.modelPip === 'green') pip.style.background = 'var(--green)';
+  else if (S.modelPip === 'blue') pip.style.background = 'var(--accent2)';
+  else pip.style.background = 'var(--amber)';
+  document.querySelectorAll('.mm-item').forEach(i => i.classList.toggle('selected', i === el));
+  document.getElementById('modelMenu').classList.remove('open');
+  toast(`Model: ${S.modelLabel}`);
+}
+// Init pill
+document.getElementById('modelPip').style.background = 'var(--green)';
+document.querySelector('.mm-item').classList.add('selected');
 
-// Quick starts
-['Luxury real estate agency','SaaS product landing','Restaurant & menu','Photography portfolio',
- 'Tech startup','Personal blog','E-commerce store','Wedding invitation',
- 'Music artist site','Law firm','Fitness studio','Travel agency'
-].forEach(q=>{
-  const c=document.createElement('div');
-  c.className='chip';c.textContent=q;
-  c.onclick=()=>document.getElementById('prompt').value=q;
+// ── QUICK STARTS ─────────────────────────────────────────────────────────────
+['Luxury watch brand','SaaS landing page','Restaurant & menu','Photography portfolio',
+ 'Tech startup','Personal blog','Law firm','E-commerce store',
+ 'Wedding invite','Music artist','Travel agency','Fitness studio'
+].forEach(q => {
+  const c = document.createElement('div');
+  c.className = 'chip'; c.textContent = q;
+  c.onclick = () => document.getElementById('promptArea').value = q;
   document.getElementById('chips').appendChild(c);
 });
 
-async function callClaude(system,user,maxTokens=8000){
-  // Send admin token if stored — bypasses rate limit for the site owner
-  const adminToken=localStorage.getItem('WEBCRAFT_ADMIN_TOKEN')||'';
-  const headers={'Content-Type':'application/json'};
-  if(adminToken)headers['X-Admin-Token']=adminToken;
-  const r=await fetch('/api/claude',{
-    method:'POST',
+// ── API CALL ──────────────────────────────────────────────────────────────────
+async function callAI(system, user, maxTokens = 8000) {
+  const adminToken = localStorage.getItem('WEBCRAFT_ADMIN_TOKEN') || '';
+  const headers = { 'Content-Type': 'application/json' };
+  if (adminToken) headers['X-Admin-Token'] = adminToken;
+
+  const res = await fetch('/api/ai', {
+    method: 'POST',
     headers,
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,system,messages:[{role:'user',content:user}]})
+    body: JSON.stringify({
+      provider: S.provider,
+      model: S.model,
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: 'user', content: user }]
+    })
   });
-  if(r.status===429){
-    const d=await r.json();
-    throw new Error(d.error?.message||'Rate limit reached. Please wait before trying again.');
+
+  if (res.status === 429) {
+    const d = await res.json();
+    throw new Error(d.error || 'Rate limit reached. Try again later.');
   }
-  if(!r.ok){
-    const d=await r.json().catch(()=>({}));
-    throw new Error(d.error?.message||'Request failed ('+r.status+')');
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    throw new Error(d.error || `Request failed (${res.status})`);
   }
-  const d=await r.json();
-  if(d.error)throw new Error(d.error.message);
-  return d.content?.find(b=>b.type==='text')?.text||'';
+
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+
+  // Track tokens
+  if (data.usage) {
+    S.totalTokens += (data.usage.input_tokens || 0) + (data.usage.output_tokens || 0);
+    updateUsage();
+  }
+
+  return data.content?.find(b => b.type === 'text')?.text || '';
 }
 
-async function generateSite(){
-  const prompt=document.getElementById('prompt').value.trim();
-  if(!prompt)return;
-  S.desc=prompt;
-  setLoading(true,'Architecting your site...');
-  document.getElementById('genBtn').disabled=true;
-  document.getElementById('genBtn').textContent='Generating...';
-  try{
-    const sys=`You are an expert web designer. Generate a complete multi-page website.
-Respond ONLY with a valid JSON object. No markdown, no backticks, no preamble.
-JSON format:
+function updateUsage() {
+  document.getElementById('usageSection').style.display = 'block';
+  const pct = Math.min((S.totalTokens / 100000) * 100, 100);
+  document.getElementById('tokenBar').style.width = pct + '%';
+  document.getElementById('tokenCount').textContent = S.totalTokens.toLocaleString();
+}
+
+// ── GENERATE ──────────────────────────────────────────────────────────────────
+async function generateSite() {
+  const prompt = document.getElementById('promptArea').value.trim();
+  if (!prompt) return;
+  S.desc = prompt;
+
+  setLoading(true, 'Architecting your site');
+  setBtnState(true);
+
+  try {
+    const sys = `You are an elite web designer and developer. Generate a complete, stunning multi-page website.
+Respond ONLY with a valid JSON object. Zero markdown, zero backticks, zero explanation outside the JSON.
+Required format:
 {
   "pages": {
-    "index.html": "..full html..",
-    "about.html": "..full html..",
-    "services.html": "..full html..",
-    "contact.html": "..full html.."
+    "index.html": "complete html string",
+    "about.html": "complete html string",
+    "services.html": "complete html string",
+    "contact.html": "complete html string"
   },
-  "shared.css": "..all shared styles..",
-  "shared.js": "..all shared javascript.."
+  "shared.css": "complete css string",
+  "shared.js": "complete js string"
 }
 Rules:
-- 3-5 pages appropriate to the site type
-- Each page is a COMPLETE HTML file with <!DOCTYPE html>
-- Each page has: <link rel="stylesheet" href="shared.css"> in head
-- Each page has: <scr\ipt src="shared.js"><\/scr\ipt> before <\/body>
-- Navigation on EVERY page links correctly to all other pages
-- Use Google Fonts in each page head
-- shared.css: stunning, comprehensive styles — CSS variables, responsive design, smooth animations, hover effects, mobile-first
-- shared.js: interactivity — mobile hamburger menu, smooth scroll, scroll animations, active nav highlighting, form validation
-- Design should be BOLD, memorable, unique to the brief — strong typography, rich colors, beautiful layouts
-- Use realistic content specific to the business/site type — NO lorem ipsum
-- Every page polished and production-ready
-- Include CSS animations: hero entrances, scroll reveals, hover micro-interactions
-- Make internal navigation fully functional between all pages`;
-    const raw=await callClaude(sys,`Build a website: ${prompt}`,8000);
-    const clean=raw.trim().replace(/^```json\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
-    const s=clean.indexOf('{'),e=clean.lastIndexOf('}');
-    if(s===-1||e===-1)throw new Error('Invalid JSON response');
-    const data=JSON.parse(clean.slice(s,e+1));
-    S.pages=data.pages||{};
-    S.css=data['shared.css']||'';
-    S.js=data['shared.js']||'';
-    if(!S.pages['index.html']&&Object.keys(S.pages).length>0){
-      const f=Object.keys(S.pages)[0];
-      S.pages['index.html']=S.pages[f];
+- Create 3-5 pages appropriate to the site type
+- Each page is a COMPLETE HTML file starting with <!DOCTYPE html>
+- Each page links: <link rel="stylesheet" href="shared.css"> in <head>
+- Each page includes: <script src="shared.js"></script> before </body>
+- Navigation on EVERY page with working links to all other pages
+- Google Fonts import in every page <head>
+- shared.css: exceptional design — CSS custom properties, responsive, rich animations, hover effects, mobile menu
+- shared.js: hamburger nav, smooth scroll, intersection observer animations, form handling
+- Design must be VISUALLY EXCEPTIONAL — bold typography, striking color palette, memorable layout
+- NO lorem ipsum — use real, specific, compelling content
+- Make it look like it cost $50,000 to build
+- Smooth CSS transitions and keyframe animations throughout`;
+
+    const raw = await callAI(sys, `Build a world-class website: ${prompt}`, 8000);
+    const clean = raw.trim().replace(/^```json\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
+    const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
+    if (s === -1 || e === -1) throw new Error('Invalid response — try again');
+    const data = JSON.parse(clean.slice(s, e + 1));
+
+    S.pages = data.pages || {};
+    S.css = data['shared.css'] || '';
+    S.js = data['shared.js'] || '';
+    if (!S.pages['index.html'] && Object.keys(S.pages).length > 0) {
+      S.pages['index.html'] = S.pages[Object.keys(S.pages)[0]];
     }
-    S.current='index.html';
-    S.history.unshift({prompt:prompt.length>44?prompt.slice(0,44)+'…':prompt,pages:JSON.parse(JSON.stringify(S.pages)),css:S.css,js:S.js});
-    if(S.history.length>6)S.history.pop();
+    S.current = 'index.html';
+    S.history.unshift({ prompt: prompt.length > 46 ? prompt.slice(0, 46) + '…' : prompt, pages: JSON.parse(JSON.stringify(S.pages)), css: S.css, js: S.js });
+    if (S.history.length > 8) S.history.pop();
+
     renderAll();
-    showToast('✓ Site generated — '+Object.keys(S.pages).length+' pages');
-  }catch(e){
-    showToast('Error: '+e.message);
+    toast(`✦ ${Object.keys(S.pages).length} pages generated`);
+  } catch(e) {
+    toast('Error: ' + e.message);
     setLoading(false);
   }
-  document.getElementById('genBtn').disabled=false;
-  document.getElementById('genBtn').textContent='Generate website ↗';
+  setBtnState(false);
 }
 
-async function iterate(){
-  const p=document.getElementById('iterInput').value.trim();
-  if(!p||!S.current||!S.pages[S.current])return;
-  const btn=document.getElementById('iterBtn');
-  btn.disabled=true;btn.textContent='Applying...';
-  setLoading(true,'Refining page...');
-  try{
-    const sys=`You are an expert web developer refining a page. Return ONLY a JSON object (no markdown):
-{"html":"updated complete html","shared.css":"updated or unchanged css","shared.js":"updated or unchanged js"}
-Preserve navigation, overall design language, and all internal links.`;
-    const raw=await callClaude(sys,`Page: ${S.current}\nHTML:\n${S.pages[S.current]}\n\nCSS:\n${S.css}\n\nChange: ${p}`,6000);
-    const clean=raw.trim().replace(/^```json\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
-    const s=clean.indexOf('{'),e=clean.lastIndexOf('}');
-    const d=JSON.parse(clean.slice(s,e+1));
-    if(d.html)S.pages[S.current]=d.html;
-    if(d['shared.css'])S.css=d['shared.css'];
-    if(d['shared.js'])S.js=d['shared.js'];
-    renderPreview();
-    renderFileTree();
-    showToast('✓ Changes applied');
-    document.getElementById('iterInput').value='';
-  }catch(e){showToast('Error: '+e.message);setLoading(false);}
-  btn.disabled=false;btn.textContent='apply changes ↗';
+// ── REFINE ────────────────────────────────────────────────────────────────────
+async function refinePage() {
+  const p = document.getElementById('refineInput').value.trim();
+  if (!p || !S.current || !S.pages[S.current]) return;
+  const btn = document.getElementById('refineBtn');
+  btn.disabled = true; btn.textContent = 'Applying...';
+  setLoading(true, 'Refining page');
+
+  try {
+    const sys = `You are an expert web developer. Return ONLY a JSON object (no markdown, no explanation):
+{"html":"updated complete html","shared.css":"updated css","shared.js":"updated js"}
+Preserve navigation, all internal links, and overall design language.`;
+    const raw = await callAI(sys, `Page: ${S.current}\nHTML:\n${S.pages[S.current]}\n\nCSS:\n${S.css}\n\nChange request: ${p}`, 6000);
+    const clean = raw.trim().replace(/^```json\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
+    const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
+    const d = JSON.parse(clean.slice(s, e + 1));
+    if (d.html) S.pages[S.current] = d.html;
+    if (d['shared.css']) S.css = d['shared.css'];
+    if (d['shared.js']) S.js = d['shared.js'];
+    renderPreview(); renderFileTree();
+    toast('✓ Changes applied');
+    document.getElementById('refineInput').value = '';
+  } catch(e) { toast('Error: ' + e.message); setLoading(false); }
+
+  btn.disabled = false; btn.textContent = 'apply changes ↗';
 }
 
-async function addPage(){
-  const name=window.prompt('New page name (e.g. services, portfolio, blog):');
-  if(!name)return;
-  const slug=name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'')+'.html';
-  if(S.pages[slug]){showToast('Page already exists');return;}
-  setLoading(true,'Generating page...');
-  try{
-    const sys=`Generate a single new HTML page for an existing website. Return ONLY the complete HTML string starting with <!DOCTYPE html>. No markdown, no JSON. Link to shared.css and shared.js. Match the existing site's design and navigation.`;
-    const html=await callClaude(sys,`Site: ${S.desc}\nPages: ${Object.keys(S.pages).join(', ')}\nCSS:\n${S.css.slice(0,2000)}\nCreate: "${name}" page (${slug})`,4000);
-    const clean=html.trim().replace(/^```html\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
-    S.pages[slug]=clean;
-    S.current=slug;
+// ── ADD PAGE ──────────────────────────────────────────────────────────────────
+async function addPage() {
+  const name = window.prompt('Page name (e.g. portfolio, pricing, blog):');
+  if (!name) return;
+  const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '.html';
+  if (S.pages[slug]) { toast('Page already exists'); return; }
+  setLoading(true, 'Generating page');
+  try {
+    const sys = `Generate a single new HTML page. Return ONLY the complete HTML starting with <!DOCTYPE html>. No JSON, no markdown. Link shared.css and shared.js. Match the existing site's design and navigation exactly.`;
+    const html = await callAI(sys, `Site: ${S.desc}\nExisting pages: ${Object.keys(S.pages).join(', ')}\nCSS snippet:\n${S.css.slice(0, 1500)}\nCreate: "${name}" page (${slug})`, 4000);
+    const clean = html.trim().replace(/^```html\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
+    S.pages[slug] = clean;
+    S.current = slug;
     renderAll();
-    showToast('✓ Page "'+slug+'" added');
-  }catch(e){showToast('Error: '+e.message);setLoading(false);}
+    toast(`✦ Page "${slug}" added`);
+  } catch(e) { toast('Error: ' + e.message); setLoading(false); }
 }
 
-function renderAll(){
-  renderPgList();renderTabs();renderFileTree();renderPreview();
-  showPanels(true);
-  const slug=S.desc.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'').slice(0,22)||'my-site';
-  document.getElementById('urlBar').value=slug+'.netlify.app';
-  document.getElementById('siteNameInput').value=slug;
-  document.getElementById('deployHdrBtn').style.display='block';
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderPgList(); renderTabs(); renderFileTree(); renderPreview();
+  showSections(true);
+  const slug = S.desc.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 22) || 'my-site';
+  document.getElementById('urlBar').value = slug + '.netlify.app';
+  document.getElementById('siteNameInput').value = slug;
+  document.getElementById('deployHdrBtn').style.display = 'block';
   renderHist();
 }
 
-function renderPgList(){
-  const multi=Object.keys(S.pages).length>1;
-  document.getElementById('pgList').innerHTML=Object.keys(S.pages).map(pg=>`
-    <div class="pg-item${pg===S.current?' active':''}" onclick="switchPage('${pg}')">
-      <div class="pg-left"><span class="pgdot"></span><span class="pg-name">${pg}</span></div>
-      ${multi?`<button class="pg-del" onclick="delPage(event,'${pg}')">✕</button>`:''}
+function renderPgList() {
+  const multi = Object.keys(S.pages).length > 1;
+  document.getElementById('pgList').innerHTML = Object.keys(S.pages).map(pg => `
+    <div class="pg-item${pg === S.current ? ' active' : ''}" onclick="switchPage('${pg}')">
+      <div class="pg-left"><span class="pg-dot"></span><span class="pg-fname">${pg}</span></div>
+      ${multi ? `<button class="pg-del" onclick="delPage(event,'${pg}')">✕</button>` : ''}
     </div>`).join('');
 }
 
-function renderTabs(){
-  document.getElementById('pageTabs').innerHTML=Object.keys(S.pages).map(pg=>
-    `<div class="tab${pg===S.current?' active':''}" onclick="switchPage('${pg}')">${pg}</div>`
+function renderTabs() {
+  document.getElementById('pageTabs').innerHTML = Object.keys(S.pages).map(pg =>
+    `<div class="ptab${pg === S.current ? ' active' : ''}" onclick="switchPage('${pg}')">${pg}</div>`
   ).join('');
 }
 
-function renderFileTree(){
-  const files=[...Object.keys(S.pages)];
-  if(S.css)files.push('shared.css');
-  if(S.js)files.push('shared.js');
-  document.getElementById('fileTree').innerHTML=files.map(f=>{
-    const ext=f.split('.').pop();
-    const isActive=(f===S.current)||(S.view==='code'&&f===S.current);
-    return `<div class="fe${isActive?' active':''}" onclick="viewFile('${f}')"><span class="fe-${ext}">◆</span>${f}</div>`;
+function renderFileTree() {
+  const files = [...Object.keys(S.pages)];
+  if (S.css) files.push('shared.css');
+  if (S.js) files.push('shared.js');
+  document.getElementById('fileTree').innerHTML = files.map(f => {
+    const ext = f.split('.').pop();
+    const active = f === S.current;
+    return `<div class="fe fe-${ext}${active ? ' active' : ''}" onclick="viewFile('${f}')">
+      <span class="fe-dot"></span>${f}
+    </div>`;
   }).join('');
 }
 
-function renderPreview(){
-  const area=document.getElementById('previewArea');
-  if(S.view==='code'){
-    const content=S.current==='shared.css'?S.css:S.current==='shared.js'?S.js:S.pages[S.current]||'';
-    area.innerHTML='<div class="code-view"><pre id="codeEl"></pre></div>';
-    document.getElementById('codeEl').textContent=content;
-    setLoading(false);return;
+function renderPreview() {
+  const area = document.getElementById('previewArea');
+
+  if (S.view === 'code') {
+    const content = S.current === 'shared.css' ? S.css
+      : S.current === 'shared.js' ? S.js
+      : S.pages[S.current] || '';
+    area.innerHTML = '<div class="code-view"><pre id="codeEl"></pre></div>';
+    document.getElementById('codeEl').textContent = content;
+    setLoading(false);
+    return;
   }
-  area.innerHTML='<div id="frameWrap" style="flex:1;overflow:auto;background:white;position:relative"></div>';
-  const wrap=document.getElementById('frameWrap');
-  const iframe=document.createElement('iframe');
-  iframe.sandbox='allow-scripts allow-same-origin allow-forms';
-  iframe.style.cssText='width:100%;border:none;display:block';
+
+  area.innerHTML = '<div id="frameArea" style="flex:1;overflow:auto;background:#fff;position:relative"></div>';
+  const wrap = document.getElementById('frameArea');
+  const iframe = document.createElement('iframe');
+  iframe.sandbox = 'allow-scripts allow-same-origin allow-forms';
+  iframe.style.cssText = 'width:100%;border:none;display:block';
   wrap.appendChild(iframe);
-  let html=S.pages[S.current]||'';
-  // Inject shared CSS/JS inline for preview
-  if(S.css)html=html.replace('</head>',`<style>${S.css}</style></head>`);
-  if(S.js)html=html.replace('</body>',`<scr'+'ipt>${S.js}<\/scr'+'ipt></body>`);
+
+  let html = S.pages[S.current] || '';
+  if (S.css) html = html.replace('</head>', `<style>${S.css}</style></head>`);
+  if (S.js) html = html.replace('</body>', `<scr${'ipt'}>${S.js}</scr${'ipt'}></body>`);
+
   iframe.contentDocument.open();
   iframe.contentDocument.write(html);
   iframe.contentDocument.close();
-  // Intercept internal nav clicks
-  try{
-    iframe.contentDocument.addEventListener('click',e=>{
-      const a=e.target.closest('a');
-      if(!a)return;
-      const href=a.getAttribute('href');
-      if(href&&!href.startsWith('http')&&!href.startsWith('#')&&!href.startsWith('mailto')){
-        const target=href.split('?')[0].split('#')[0];
-        if(S.pages[target]){e.preventDefault();switchPage(target);}
+
+  // Intercept internal nav
+  try {
+    iframe.contentDocument.addEventListener('click', e => {
+      const a = e.target.closest('a');
+      if (!a) return;
+      const href = a.getAttribute('href');
+      if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('mailto')) {
+        const target = href.split('?')[0].split('#')[0];
+        if (S.pages[target]) { e.preventDefault(); switchPage(target); }
       }
     });
-  }catch(err){}
-  setTimeout(()=>{
-    try{const h=iframe.contentDocument.body?.scrollHeight;if(h&&h>300)iframe.style.height=(h+20)+'px';}catch(e){}
+  } catch(_) {}
+
+  setTimeout(() => {
+    try {
+      const h = iframe.contentDocument.body?.scrollHeight;
+      if (h && h > 400) iframe.style.height = (h + 20) + 'px';
+    } catch(_) {}
     setLoading(false);
-  },600);
+  }, 700);
 }
 
-function renderHist(){
-  const list=document.getElementById('hList');
-  if(!S.history.length){list.innerHTML='<div style="font-size:12px;color:var(--text3)">No sites yet</div>';return;}
-  list.innerHTML=S.history.map((h,i)=>`<div class="hi${i===0?' active':''}" onclick="loadHist(${i})">⬡ ${h.prompt}</div>`).join('');
+function renderHist() {
+  const list = document.getElementById('histList');
+  if (!S.history.length) {
+    list.innerHTML = '<div style="font-size:11px;font-family:var(--font-mono);color:var(--dim);padding:4px 0">No sites yet</div>';
+    return;
+  }
+  list.innerHTML = S.history.map((h, i) =>
+    `<div class="hi${i === 0 ? ' active' : ''}" onclick="loadHist(${i})">✦ ${h.prompt}</div>`
+  ).join('');
 }
 
-function switchPage(pg){
-  S.current=pg;
-  renderPgList();renderTabs();renderFileTree();
-  setLoading(true,'Loading page...');
+function switchPage(pg) {
+  S.current = pg;
+  renderPgList(); renderTabs(); renderFileTree();
+  setLoading(true, 'Loading');
   renderPreview();
 }
 
-function viewFile(f){
-  S.current=f;
-  if(f==='shared.css'||f==='shared.js'){S.view='code';document.getElementById('viewToggle').textContent='⬡ preview';}
-  renderFileTree();renderPreview();
+function viewFile(f) {
+  S.current = f;
+  if (f === 'shared.css' || f === 'shared.js') {
+    S.view = 'code';
+    document.getElementById('viewToggle').textContent = '⬡ preview';
+  }
+  renderFileTree(); renderPreview();
 }
 
-function delPage(e,pg){
+function delPage(e, pg) {
   e.stopPropagation();
-  if(!confirm('Delete '+pg+'?'))return;
+  if (!confirm(`Delete ${pg}?`)) return;
   delete S.pages[pg];
-  if(S.current===pg)S.current=Object.keys(S.pages)[0]||'';
+  if (S.current === pg) S.current = Object.keys(S.pages)[0] || '';
   renderAll();
 }
 
-function toggleView(){
-  S.view=S.view==='preview'?'code':'preview';
-  document.getElementById('viewToggle').textContent=S.view==='code'?'⬡ preview':'{ } code';
-  renderPreview();renderFileTree();
+function toggleView() {
+  S.view = S.view === 'preview' ? 'code' : 'preview';
+  document.getElementById('viewToggle').textContent = S.view === 'code' ? '⬡ preview' : '{ } code';
+  renderPreview(); renderFileTree();
 }
 
-function loadHist(i){
-  const h=S.history[i];
-  S.pages=JSON.parse(JSON.stringify(h.pages));
-  S.css=h.css;S.js=h.js;S.current='index.html';
+function loadHist(i) {
+  const h = S.history[i];
+  S.pages = JSON.parse(JSON.stringify(h.pages));
+  S.css = h.css; S.js = h.js;
+  S.current = 'index.html';
   renderAll();
-  document.querySelectorAll('.hi').forEach((el,j)=>el.classList.toggle('active',j===i));
+  document.querySelectorAll('.hi').forEach((el, j) => el.classList.toggle('active', j === i));
 }
 
-function showPanels(on){
-  ['pagesSection','filesSection','iterSection','exportSection','deploySection']
-    .forEach(id=>document.getElementById(id).style.display=on?'block':'none');
+function showSections(on) {
+  ['pagesSection','filesSection','refineSection','exportSection','deploySection']
+    .forEach(id => document.getElementById(id).style.display = on ? 'block' : 'none');
 }
 
-function scrollToSection(id){
-  document.getElementById(id).scrollIntoView({behavior:'smooth'});
+function scrollDeploy() {
+  document.getElementById('deploySection').scrollIntoView({ behavior: 'smooth' });
 }
 
-async function downloadZip(){
-  if(!Object.keys(S.pages).length)return;
-  if(typeof JSZip==='undefined'){showToast('JSZip not loaded yet, try again');return;}
-  const zip=new JSZip();
-  Object.entries(S.pages).forEach(([n,h])=>zip.file(n,h));
-  if(S.css)zip.file('shared.css',S.css);
-  if(S.js)zip.file('shared.js',S.js);
-  const blob=await zip.generateAsync({type:'blob'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=(S.desc.toLowerCase().replace(/\s+/g,'-').slice(0,20)||'sitecraft')+'.zip';
+// ── EXPORT ────────────────────────────────────────────────────────────────────
+async function downloadZip() {
+  if (!Object.keys(S.pages).length) return;
+  if (typeof JSZip === 'undefined') { toast('JSZip not loaded yet'); return; }
+  const zip = new JSZip();
+  Object.entries(S.pages).forEach(([n, h]) => zip.file(n, h));
+  if (S.css) zip.file('shared.css', S.css);
+  if (S.js) zip.file('shared.js', S.js);
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (S.desc.toLowerCase().replace(/\s+/g, '-').slice(0, 20) || 'webcraft') + '.zip';
   a.click();
-  showToast('✓ ZIP downloaded');
+  toast('✓ ZIP downloaded');
 }
 
-function downloadPage(){
-  if(!S.current||!S.pages[S.current])return;
-  let html=S.pages[S.current];
-  if(S.css)html=html.replace('</head>',`<style>${S.css}</style></head>`);
-  if(S.js)html=html.replace('</body>',`<scr'+'ipt>${S.js}<\/scr'+'ipt></body>`);
-  const a=document.createElement('a');
-  a.href='data:text/html;charset=utf-8,'+encodeURIComponent(html);
-  a.download=S.current;a.click();
-  showToast('✓ Downloaded '+S.current);
+function downloadPage() {
+  if (!S.current || !S.pages[S.current]) return;
+  let html = S.pages[S.current];
+  if (S.css) html = html.replace('</head>', `<style>${S.css}</style></head>`);
+  if (S.js) html = html.replace('</body>', `<scr${'ipt'}>${S.js}</scr${'ipt'}></body>`);
+  const a = document.createElement('a');
+  a.href = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+  a.download = S.current; a.click();
+  toast('✓ Downloaded ' + S.current);
 }
 
-async function doNetlifyDeploy(){
-  if(!Object.keys(S.pages).length){showToast('Generate a site first');return;}
-  const btn=document.getElementById('deployBtn');
-  btn.disabled=true;btn.textContent='Deploying...';
-  document.getElementById('sdot').className='sdot loading';
-  document.getElementById('stext').textContent='deploying...';
-  try{
-    if(typeof JSZip==='undefined')throw new Error('JSZip not loaded');
-    const zip=new JSZip();
-    Object.entries(S.pages).forEach(([n,h])=>zip.file(n,h));
-    if(S.css)zip.file('shared.css',S.css);
-    if(S.js)zip.file('shared.js',S.js);
-    const b64=await zip.generateAsync({type:'base64'});
-    window.parent.postMessage({type:'SITECRAFT_DEPLOY',siteId:SITE_ID,zipBase64:b64},'*');
-    showToast('Deploy request sent...');
-  }catch(e){
-    showToast('Error: '+e.message);
-    btn.disabled=false;btn.textContent='deploy live ↗';
-    document.getElementById('sdot').className='sdot';
-    document.getElementById('stext').textContent='error';
+// ── DEPLOY ────────────────────────────────────────────────────────────────────
+async function doNetlifyDeploy() {
+  if (!Object.keys(S.pages).length) { toast('Generate a site first'); return; }
+  const btn = document.getElementById('deployBtn');
+  btn.disabled = true; btn.textContent = 'Deploying...';
+  document.getElementById('dPip').className = 'pip loading';
+  document.getElementById('dText').textContent = 'deploying...';
+  try {
+    if (typeof JSZip === 'undefined') throw new Error('JSZip not loaded');
+    const zip = new JSZip();
+    Object.entries(S.pages).forEach(([n, h]) => zip.file(n, h));
+    if (S.css) zip.file('shared.css', S.css);
+    if (S.js) zip.file('shared.js', S.js);
+    const b64 = await zip.generateAsync({ type: 'base64' });
+    window.parent.postMessage({ type: 'WEBCRAFT_DEPLOY', siteId: SITE_ID, zipBase64: b64 }, '*');
+    toast('Deploy request sent…');
+  } catch(e) {
+    toast('Error: ' + e.message);
+    btn.disabled = false; btn.textContent = 'deploy live ↗';
+    document.getElementById('dPip').className = 'pip';
+    document.getElementById('dText').textContent = 'error';
   }
 }
 
-window.addEventListener('message',e=>{
-  if(e.data?.type==='SITECRAFT_DEPLOY_RESULT'){
-    const btn=document.getElementById('deployBtn');
-    btn.disabled=false;btn.textContent='deploy live ↗';
-    if(e.data.success){
-      document.getElementById('sdot').className='sdot live';
-      document.getElementById('stext').textContent='live';
-      document.getElementById('urlBar').value=e.data.url;
-      const out=document.getElementById('deployOut');
-      out.style.display='block';
-      out.innerHTML=`✓ Live: <a href="${e.data.url}" target="_blank" style="color:var(--green)">${e.data.url}</a>`;
-      showToast('✓ Deployed live!');
-    }else{
-      document.getElementById('sdot').className='sdot';
-      document.getElementById('stext').textContent='failed';
-      showToast('Deploy failed');
+window.addEventListener('message', e => {
+  if (e.data?.type === 'WEBCRAFT_DEPLOY_RESULT') {
+    const btn = document.getElementById('deployBtn');
+    btn.disabled = false; btn.textContent = 'deploy live ↗';
+    if (e.data.success) {
+      document.getElementById('dPip').className = 'pip live';
+      document.getElementById('dText').textContent = 'live';
+      document.getElementById('urlBar').value = e.data.url;
+      const out = document.getElementById('deployOut');
+      out.style.display = 'block';
+      out.innerHTML = `✓ Live: <a href="${e.data.url}" target="_blank">${e.data.url}</a>`;
+      toast('✓ Deployed live!');
+    } else {
+      document.getElementById('dPip').className = 'pip';
+      document.getElementById('dText').textContent = 'failed';
     }
   }
 });
 
-function setLoading(on,msg='Building...'){
-  const area=document.getElementById('previewArea');
-  const ex=area.querySelector('.loading-ov');
-  if(on){
-    if(!ex){
-      const d=document.createElement('div');
-      d.className='loading-ov';
-      d.innerHTML=`<div class="spin"></div><div class="ltxt">${msg}</div>`;
-      area.appendChild(d);
-    }
-  }else{if(ex)ex.remove();}
+// ── LOADING ───────────────────────────────────────────────────────────────────
+const LOADING_MSGS = [
+  'Architecting your site',
+  'Designing the layout',
+  'Writing the code',
+  'Polishing the details',
+  'Almost ready',
+];
+let loadingInterval;
+
+function setLoading(on, msg = 'Building') {
+  const area = document.getElementById('previewArea');
+  const ex = area.querySelector('.loading-ov');
+  if (on) {
+    if (ex) { ex.querySelector('.loading-label').textContent = msg + '...'; return; }
+    const div = document.createElement('div');
+    div.className = 'loading-ov';
+    div.innerHTML = `
+      <div class="spinner"></div>
+      <div class="loading-label">${msg}...</div>
+      <div class="loading-progress">
+        ${LOADING_MSGS.map((_, i) => `<div class="loading-step" id="ls${i}"></div>`).join('')}
+      </div>`;
+    area.appendChild(div);
+    let step = 0;
+    clearInterval(loadingInterval);
+    loadingInterval = setInterval(() => {
+      if (step > 0) document.getElementById(`ls${step - 1}`)?.classList.replace('active', 'done');
+      if (step < LOADING_MSGS.length) {
+        div.querySelector('.loading-label').textContent = LOADING_MSGS[step] + '...';
+        document.getElementById(`ls${step}`)?.classList.add('active');
+        step++;
+      }
+    }, 1200);
+  } else {
+    clearInterval(loadingInterval);
+    if (ex) ex.remove();
+  }
 }
 
-function showToast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2600);
+function setBtnState(loading) {
+  const btn = document.getElementById('genBtn');
+  btn.disabled = loading;
+  document.getElementById('genBtnIcon').textContent = loading ? '' : '✦';
+  document.getElementById('genBtnText').textContent = loading ? 'Generating…' : 'Generate website';
+  if (loading) {
+    btn.insertAdjacentHTML('afterbegin', '<span class="spinner" style="width:14px;height:14px;border-width:1.5px;margin-right:6px"></span>');
+  } else {
+    btn.querySelector('.spinner')?.remove();
+  }
 }
 
-document.getElementById('prompt').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey))generateSite();});
-document.getElementById('iterInput').addEventListener('keydown',e=>{if(e.key==='Enter')iterate();});
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── KEYBOARD ──────────────────────────────────────────────────────────────────
+document.getElementById('promptArea').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) generateSite();
+});
+document.getElementById('refineInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') refinePage();
+});
 </script>
 </body>
 </html>
