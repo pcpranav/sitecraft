@@ -142,6 +142,19 @@ iframe{width:100%;border:none;display:block}
 .loading-step{width:6px;height:6px;border-radius:50%;background:var(--mute);transition:background .3s}
 .loading-step.done{background:var(--accent)}
 .loading-step.active{background:var(--accent);animation:blink .7s infinite}
+ 
+/* VIEWPORTS */
+.vp-toggles{display:flex;gap:4px;margin:0 12px;padding:3px;background:var(--card);border:1px solid var(--edge);border-radius:20px}
+.vp-btn{width:24px;height:24px;border-radius:12px;border:none;background:transparent;color:var(--dim);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.vp-btn:hover{color:var(--soft)}
+.vp-btn.active{background:var(--lift);color:var(--accent)}
+.vp-btn svg{width:14px;height:14px}
+ 
+#previewArea{perspective:1000px}
+#frameArea{transition:width .3s cubic-bezier(.4,0,.2,1), margin .3s ease;box-shadow:0 24px 64px rgba(0,0,0,.3)}
+#frameArea.mobile{width:375px;margin:1.5rem auto;border-radius:24px;border:8px solid var(--edge)}
+#frameArea.tablet{width:768px;margin:1.5rem auto;border-radius:12px;border:6px solid var(--edge)}
+#frameArea.desktop{width:100%;margin:0;border-radius:0;border:none}
 
 /* CODE VIEW */
 .code-view{flex:1;overflow:auto;background:var(--night);padding:1.25rem}
@@ -329,6 +342,17 @@ pre{font-family:var(--font-mono);font-size:12px;color:var(--soft);white-space:pr
   <div class="preview">
     <div class="toolbar">
       <div class="tls"><div class="tl"></div><div class="tl"></div><div class="tl"></div></div>
+      <div class="vp-toggles">
+        <button class="vp-btn active" id="vp-desktop" onclick="setViewport('desktop')" title="Desktop">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </button>
+        <button class="vp-btn" id="vp-tablet" onclick="setViewport('tablet')" title="Tablet">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+        </button>
+        <button class="vp-btn" id="vp-mobile" onclick="setViewport('mobile')" title="Mobile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+        </button>
+      </div>
       <input class="url-bar" id="urlBar" value="your-site.netlify.app" readonly/>
       <div class="page-tabs" id="pageTabs"></div>
     </div>
@@ -363,6 +387,7 @@ const S = {
   model: 'gemini-2.5-flash-preview-04-17',
   modelLabel: 'gemini-2.5-flash',
   modelPip: 'green',
+  viewport: 'desktop',
 };
 
 // ── MODEL SWITCHER ────────────────────────────────────────────────────────────
@@ -497,8 +522,7 @@ Rules:
       S.pages['index.html'] = S.pages[Object.keys(S.pages)[0]];
     }
     S.current = 'index.html';
-    S.history.unshift({ prompt: prompt.length > 46 ? prompt.slice(0,46)+'…' : prompt, pages: JSON.parse(JSON.stringify(S.pages)), css: S.css, js: S.js });
-    if (S.history.length > 8) S.history.pop();
+    updateHistory(prompt);
 
     renderAll();
     toast(`✦ ${Object.keys(S.pages).length} pages generated`);
@@ -520,14 +544,15 @@ async function refinePage() {
     const sys = `You are an expert web developer. Return ONLY a JSON object (no markdown, no explanation):
 {"html":"updated complete html","shared.css":"updated css","shared.js":"updated js"}
 Preserve navigation, all internal links, and overall design language.`;
-    const raw = await callAI(sys, `Page: ${S.current}\nHTML:\n${S.pages[S.current]}\n\nCSS:\n${S.css}\n\nChange request: ${p}`, 6000);
+    const raw = await callAI(sys, `Page: ${S.current}\nHTML:\n${S.pages[S.current]}\n\nCSS:\n${S.css}\n\nJS:\n${S.js}\n\nChange request: ${p}`, 6000);
     const clean = raw.trim().replace(/^```json\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
     const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
     const d = JSON.parse(clean.slice(s, e + 1));
     if (d.html) S.pages[S.current] = d.html;
     if (d['shared.css']) S.css = d['shared.css'];
     if (d['shared.js']) S.js = d['shared.js'];
-    renderPreview(); renderFileTree();
+    updateHistory(`Refined ${S.current}: ${p}`);
+    renderPreview(); renderFileTree(); renderHist();
     toast('✓ Changes applied');
     document.getElementById('refineInput').value = '';
   } catch(err) {
@@ -546,10 +571,11 @@ async function addPage() {
   setLoading(true, 'Generating page');
   try {
     const sys = `Generate a single new HTML page. Return ONLY the complete HTML starting with <!DOCTYPE html>. No JSON, no markdown. Link shared.css and shared.js. Match the existing site's design and navigation exactly.`;
-    const html = await callAI(sys, `Site: ${S.desc}\nExisting pages: ${Object.keys(S.pages).join(', ')}\nCSS snippet:\n${S.css.slice(0,1500)}\nCreate: "${name}" page (${slug})`, 4000);
+    const html = await callAI(sys, `Site: ${S.desc}\nExisting pages: ${Object.keys(S.pages).join(', ')}\nCSS:\n${S.css}\nJS:\n${S.js}\nCreate: "${name}" page (${slug})`, 4000);
     const clean = html.trim().replace(/^```html\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
     S.pages[slug] = clean;
     S.current = slug;
+    updateHistory(`Added page: ${slug}`);
     renderAll(); // renderAll calls renderPreview which clears loading via iframe timeout
     toast(`✦ Page "${slug}" added`);
   } catch(err) {
@@ -574,7 +600,10 @@ function renderPgList() {
   document.getElementById('pgList').innerHTML = Object.keys(S.pages).map(pg => `
     <div class="pg-item${pg===S.current?' active':''}" onclick="switchPage('${pg}')">
       <div class="pg-left"><span class="pg-dot"></span><span class="pg-fname">${pg}</span></div>
-      ${multi ? `<button class="pg-del" onclick="delPage(event,'${pg}')">✕</button>` : ''}
+      <div style="display:flex;gap:4px">
+        <button class="pg-del" onclick="dupPage(event,'${pg}')" title="Duplicate" style="opacity:0">⎘</button>
+        ${multi ? `<button class="pg-del" onclick="delPage(event,'${pg}')" title="Delete">✕</button>` : ''}
+      </div>
     </div>`).join('');
 }
 
@@ -608,18 +637,25 @@ function renderPreview() {
     return;
   }
 
-  area.innerHTML = '<div id="frameArea" style="flex:1;overflow:auto;background:#fff;position:relative"></div>';
+  area.innerHTML = `<div id="frameArea" class="${S.viewport}" style="overflow:auto;background:#fff;position:relative"></div>`;
   const wrap = document.getElementById('frameArea');
   const iframe = document.createElement('iframe');
-  // FIX: added allow-popups so target="_blank" links work in preview
-  iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups';
+  // FIX: added allow-popups and allow-modals
+  iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals';
   iframe.style.cssText = 'width:100%;border:none;display:block';
   wrap.appendChild(iframe);
 
   // Inline CSS and JS into the HTML so the iframe is self-contained
   let html = S.pages[S.current] || '';
   if (S.css) html = html.replace('</head>', `<style>${S.css}</style></head>`);
-  if (S.js) html = html.replace('</body>', `<scr${'ipt'}>${S.js}</scr${'ipt'}></body>`);
+  if (S.js) {
+    const scriptTag = `<script>${S.js}<\/script>`;
+    if (html.includes('</body>')) {
+      html = html.replace('</body>', `${scriptTag}</body>`);
+    } else {
+      html += scriptTag;
+    }
+  }
 
   iframe.contentDocument.open();
   iframe.contentDocument.write(html);
@@ -679,6 +715,7 @@ function delPage(e, pg) {
   if (!confirm(`Delete ${pg}?`)) return;
   delete S.pages[pg];
   if (S.current === pg) S.current = Object.keys(S.pages)[0] || '';
+  updateHistory(`Deleted page: ${pg}`);
   renderAll();
 }
 
@@ -691,7 +728,7 @@ function toggleView() {
 function loadHist(i) {
   const h = S.history[i];
   S.pages = JSON.parse(JSON.stringify(h.pages));
-  S.css = h.css; S.js = h.js;
+  S.css = h.css; S.js = h.js; S.desc = h.desc || '';
   S.current = 'index.html';
   renderAll();
   document.querySelectorAll('.hi').forEach((el, j) => el.classList.toggle('active', j === i));
@@ -705,6 +742,72 @@ function showSections(on) {
 function scrollDeploy() {
   document.getElementById('deploySection').scrollIntoView({ behavior: 'smooth' });
 }
+
+function updateHistory(label) {
+  const item = {
+    prompt: label.length > 46 ? label.slice(0,46)+'…' : label,
+    pages: JSON.parse(JSON.stringify(S.pages)),
+    css: S.css,
+    js: S.js,
+    desc: S.desc
+  };
+  S.history.unshift(item);
+  if (S.history.length > 12) S.history.pop();
+  saveToStorage();
+}
+
+function setViewport(vp) {
+  S.viewport = vp;
+  document.querySelectorAll('.vp-btn').forEach(b => b.classList.toggle('active', b.id === 'vp-' + vp));
+  const frame = document.getElementById('frameArea');
+  if (frame) {
+    frame.className = vp;
+    // Set explicit height if mobile/tablet to ensure scrollbars inside frame
+    frame.style.flex = vp === 'desktop' ? '1' : 'none';
+    frame.style.height = vp === 'desktop' ? 'auto' : 'calc(100% - 3rem)';
+  }
+}
+
+function dupPage(e, pg) {
+  e.stopPropagation();
+  const name = pg.replace('.html','') + '-copy.html';
+  S.pages[name] = S.pages[pg];
+  updateHistory(`Duplicated ${pg}`);
+  renderAll();
+  toast(`✓ Duplicated as ${name}`);
+}
+
+function saveToStorage() {
+  try {
+    const data = {
+      pages: S.pages, css: S.css, js: S.js,
+      desc: S.desc, history: S.history,
+      totalTokens: S.totalTokens
+    };
+    localStorage.setItem('WEBCRAFT_PROJECT', JSON.stringify(data));
+  } catch(e) {}
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem('WEBCRAFT_PROJECT');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    S.pages = data.pages || {};
+    S.css = data.css || '';
+    S.js = data.js || '';
+    S.desc = data.desc || '';
+    S.history = data.history || [];
+    S.totalTokens = data.totalTokens || 0;
+    if (Object.keys(S.pages).length) {
+      S.current = 'index.html';
+      renderAll();
+      updateUsage();
+    }
+  } catch(e) {}
+}
+
+window.onload = loadFromStorage;
 
 // ── EXPORT ────────────────────────────────────────────────────────────────────
 async function downloadZip() {
@@ -726,9 +829,14 @@ function downloadPage() {
   if (!S.current || !S.pages[S.current]) return;
   let html = S.pages[S.current];
   if (S.css) html = html.replace('</head>', `<style>${S.css}</style></head>`);
-  if (S.js) html = html.replace('</body>', `<scr${'ipt'}>${S.js}</scr${'ipt'}></body>`);
+  if (S.js) {
+    const scriptTag = `<script>${S.js}<\/script>`;
+    if (html.includes('</body>')) html = html.replace('</body>', `${scriptTag}</body>`);
+    else html += scriptTag;
+  }
+  const blob = new Blob([html], { type: 'text/html' });
   const a = document.createElement('a');
-  a.href = 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
+  a.href = URL.createObjectURL(blob);
   a.download = S.current; a.click();
   toast('✓ Downloaded ' + S.current);
 }

@@ -45,7 +45,12 @@ export default async (req) => {
       body: zipBuffer,
     });
 
-    const deployData = await deployRes.json();
+    let deployData;
+    try {
+      deployData = await deployRes.json();
+    } catch {
+      throw new Error(`Netlify returned invalid JSON (${deployRes.status})`);
+    }
 
     if (!deployRes.ok) {
       throw new Error(deployData.message || `Netlify deploy failed (${deployRes.status})`);

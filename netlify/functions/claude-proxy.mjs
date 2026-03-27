@@ -104,7 +104,13 @@ async function callAnthropic({ model, system, messages, max_tokens }) {
     body: JSON.stringify({ model, system, messages, max_tokens }),
   });
 
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(`Anthropic returned invalid JSON (${res.status})`);
+  }
+
   if (!res.ok) throw new Error(data.error?.message || `Anthropic error ${res.status}`);
 
   // Normalize to { content: [{type:'text', text:'...'}], usage: {input_tokens, output_tokens} }
@@ -143,12 +149,23 @@ async function callGemini({ model, system, messages, max_tokens }) {
     body: JSON.stringify(geminiBody),
   });
 
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(`Gemini returned invalid JSON (${res.status})`);
+  }
+
   if (!res.ok || data.error) {
     throw new Error(data.error?.message || `Gemini error ${res.status}`);
   }
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  const candidate = data.candidates?.[0];
+  if (!candidate) {
+    const feedback = data.promptFeedback?.blockReason ? `Blocked: ${data.promptFeedback.blockReason}` : 'No response from model (safety filter?)';
+    throw new Error(feedback);
+  }
+  const text = candidate.content?.parts?.[0]?.text ?? '';
   return {
     content: [{ type: 'text', text }],
     usage: {
@@ -176,7 +193,13 @@ async function callOpenAI({ model, system, messages, max_tokens }) {
     body: JSON.stringify({ model, messages: openaiMessages, max_tokens }),
   });
 
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error(`OpenAI returned invalid JSON (${res.status})`);
+  }
+
   if (!res.ok) throw new Error(data.error?.message || `OpenAI error ${res.status}`);
 
   const text = data.choices?.[0]?.message?.content ?? '';
