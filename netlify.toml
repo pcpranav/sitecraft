@@ -3,10 +3,20 @@
 
 [functions]
   directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/ai"
+  to = "/.netlify/functions/claude-proxy"
+  status = 200
+
+[[redirects]]
+  from = "/api/deploy"
+  to = "/.netlify/functions/deploy"
+  status = 200
 
 [[headers]]
   for = "/*"
   [headers.values]
-    X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
     Cache-Control = "public, max-age=0, must-revalidate"
