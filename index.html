@@ -424,7 +424,7 @@ function selectModel(el) {
 // ── API CALL ──────────────────────────────────────────────────────────────────
 // The proxy at /api/ai normalizes all provider responses to:
 // { content: [{type:'text', text:'...'}], usage: {input_tokens, output_tokens} }
-async function callAI(system, user, maxTokens = 8000) {
+async function callAI(system, user, maxTokens = 6000) {
   const adminToken = localStorage.getItem('WEBCRAFT_ADMIN_TOKEN') || '';
   const headers = { 'Content-Type': 'application/json' };
   if (adminToken) headers['X-Admin-Token'] = adminToken;
@@ -495,7 +495,7 @@ Required format:
 }
 
 Rules:
-- Create 3-5 pages appropriate to the site type
+- Create exactly 2 pages (index.html + one other) appropriate to the site type
 - Each page is a COMPLETE HTML file starting with <!DOCTYPE html>
 - Each page links: <link rel="stylesheet" href="shared.css"> in <head>
 - Each page includes: <script src="shared.js"><\/script> before </body>
@@ -508,7 +508,7 @@ Rules:
 - Make it look like it cost $50,000 to build
 - Smooth CSS transitions and keyframe animations throughout`;
 
-    const raw = await callAI(sys, `Build a world-class website: ${prompt}`, 8000);
+    const raw = await callAI(sys, `Build a world-class website: ${prompt}`, 6000);
     const clean = raw.trim().replace(/^```json\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
     const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
     if (s === -1 || e === -1) throw new Error('Invalid response — try again');
