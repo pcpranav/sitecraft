@@ -411,7 +411,7 @@ function selectModel(el) {
 }
 
 // ── QUICK STARTS ──────────────────────────────────────────────────────────────
-['Luxury watch brand','SaaS landing page','Restaurant & menu','Photography portfolio',
+['Developer portfolio','SaaS landing page','Restaurant & menu','Photography portfolio',
  'Tech startup','Personal blog','Law firm','E-commerce store',
  'Wedding invite','Music artist','Travel agency','Fitness studio'
 ].forEach(q => {
@@ -424,7 +424,7 @@ function selectModel(el) {
 // ── API CALL ──────────────────────────────────────────────────────────────────
 // The proxy at /api/ai normalizes all provider responses to:
 // { content: [{type:'text', text:'...'}], usage: {input_tokens, output_tokens} }
-async function callAI(system, user, maxTokens = 6000) {
+async function callAI(system, user, maxTokens = 8000) {
   const adminToken = localStorage.getItem('WEBCRAFT_ADMIN_TOKEN') || '';
   const headers = { 'Content-Type': 'application/json' };
   if (adminToken) headers['X-Admin-Token'] = adminToken;
@@ -494,13 +494,13 @@ Format:
 Rules:
 - ONE page only: index.html
 - ALL CSS and JS must be INLINE inside the HTML (no external files)
-- HTML must be UNDER 6000 characters total - be concise
+- HTML can be up to 14000 characters - include ALL requested sections fully with real content
 - Modern design: gradient hero, features grid, CTA section, footer
 - Real content specific to the site type - NO lorem ipsum
 - Use CSS variables and flexbox/grid
-- Add subtle CSS animations (fade-in, hover effects)`;
+- Add scroll fade-in animations (IntersectionObserver), sticky navbar, hover effects, mobile responsive`;
 
-        const raw = await callAI(sys, `Create a website for: ${prompt}`, 2000);
+        const raw = await callAI(sys, `Create a website for: ${prompt}`, 8000);
     const clean = raw.trim().replace(/^```json\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
     const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
     if (s === -1 || e === -1) throw new Error('Invalid response — try again');
@@ -520,7 +520,7 @@ Rules:
     toast(`✦ ${Object.keys(S.pages).length} pages generated`);
   } catch(err) {
     const msg = err.message?.includes('JSON') || err.message?.includes('position')
-      ? 'Generation incomplete — response was cut off. Try a simpler description.'
+      ? 'Generation incomplete — try a more capable model (Gemini Pro / Claude Sonnet) or shorten prompt — response was cut off. Try a simpler description.'
       : 'Error: ' + err.message;
     toast(msg);
     setLoading(false);
