@@ -8,20 +8,16 @@ const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
 function checkRateLimit(ip, adminToken) {
   const envAdmin = process.env.ADMIN_TOKEN;
   if (envAdmin && adminToken === envAdmin) return null; // bypass
-
   const now = Date.now();
   const entry = RATE_LIMIT.get(ip) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW };
-
   if (now > entry.resetAt) {
     entry.count = 0;
     entry.resetAt = now + RATE_LIMIT_WINDOW;
   }
-
   if (entry.count >= RATE_LIMIT_MAX) {
     const mins = Math.ceil((entry.resetAt - now) / 60000);
     return `Rate limit reached (${RATE_LIMIT_MAX} req/hr). Resets in ~${mins}m.`;
   }
-
   entry.count++;
   RATE_LIMIT.set(ip, entry);
   return null;
@@ -43,7 +39,6 @@ export default async (req, context) => {
 
   const ip = context.ip || req.headers.get('x-forwarded-for') || 'unknown';
   const adminToken = req.headers.get('x-admin-token') || '';
-
   const rateLimitErr = checkRateLimit(ip, adminToken);
   if (rateLimitErr) {
     return new Response(JSON.stringify({ error: rateLimitErr }), {
@@ -75,25 +70,28 @@ export default async (req, context) => {
     } else {
       throw new Error(`Unknown provider: ${provider}`);
     }
-
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   } catch (err) {
     console.error(`[${provider}] Error:`, err);
+    const status = err.status || 500;
     return new Response(JSON.stringify({ error: err.message || 'AI request failed' }), {
-      status: 500,
+      status,
       headers: { ...CORS, 'Content-Type': 'application/json' },
     });
   }
 };
 
-// ── ANTHROPIC ─────────────────────────────────────────────────────────────────
+// ── ANTHROPIC ────────────────────────────────────────────────────────────────
 async function callAnthropic({ model, system, messages, max_tokens }) {
   const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) throw new Error('ANTHROPIC_API_KEY not configured');
-
+  if (!key) {
+    const err = new Error('Anthropic is not configured on this deployment. Please use Gemini instead.');
+    err.status = 503;
+    throw err;
+  }
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -103,17 +101,9 @@ async function callAnthropic({ model, system, messages, max_tokens }) {
     },
     body: JSON.stringify({ model, system, messages, max_tokens }),
   });
-
   let data;
-  try {
-    data = await res.json();
-  } catch {
-    throw new Error(`Anthropic returned invalid JSON (${res.status})`);
-  }
-
+  try { data = await res.json(); } catch { throw new Error(`Anthropic returned invalid JSON (${res.status})`); }
   if (!res.ok) throw new Error(data.error?.message || `Anthropic error ${res.status}`);
-
-  // Normalize to { content: [{type:'text', text:'...'}], usage: {input_tokens, output_tokens} }
   return {
     content: data.content,
     usage: {
@@ -123,17 +113,18 @@ async function callAnthropic({ model, system, messages, max_tokens }) {
   };
 }
 
-// ── GEMINI ────────────────────────────────────────────────────────────────────
+// ── GEMINI ───────────────────────────────────────────────────────────────────
 async function callGemini({ model, system, messages, max_tokens }) {
   const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error('GEMINI_API_KEY not configured');
-
-  // Build Gemini contents from messages
+  if (!key) {
+    const err = new Error('Gemini is not configured on this deployment.');
+    err.status = 503;
+    throw err;
+  }
   const contents = messages.map(m => ({
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }],
   }));
-
   const geminiBody = {
     contents,
     generationConfig: { maxOutputTokens: max_tokens },
@@ -141,28 +132,22 @@ async function callGemini({ model, system, messages, max_tokens }) {
   if (system) {
     geminiBody.systemInstruction = { parts: [{ text: system }] };
   }
-
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(geminiBody),
   });
-
   let data;
-  try {
-    data = await res.json();
-  } catch {
-    throw new Error(`Gemini returned invalid JSON (${res.status})`);
-  }
-
+  try { data = await res.json(); } catch { throw new Error(`Gemini returned invalid JSON (${res.status})`); }
   if (!res.ok || data.error) {
     throw new Error(data.error?.message || `Gemini error ${res.status}`);
   }
-
   const candidate = data.candidates?.[0];
   if (!candidate) {
-    const feedback = data.promptFeedback?.blockReason ? `Blocked: ${data.promptFeedback.blockReason}` : 'No response from model (safety filter?)';
+    const feedback = data.promptFeedback?.blockReason
+      ? `Blocked: ${data.promptFeedback.blockReason}`
+      : 'No response from model (safety filter?)';
     throw new Error(feedback);
   }
   const text = candidate.content?.parts?.[0]?.text ?? '';
@@ -175,15 +160,17 @@ async function callGemini({ model, system, messages, max_tokens }) {
   };
 }
 
-// ── OPENAI ────────────────────────────────────────────────────────────────────
+// ── OPENAI ───────────────────────────────────────────────────────────────────
 async function callOpenAI({ model, system, messages, max_tokens }) {
   const key = process.env.OPENAI_API_KEY;
-  if (!key) throw new Error('OPENAI_API_KEY not configured');
-
+  if (!key) {
+    const err = new Error('OpenAI is not configured on this deployment. Please use Gemini instead.');
+    err.status = 503;
+    throw err;
+  }
   const openaiMessages = [];
   if (system) openaiMessages.push({ role: 'system', content: system });
   openaiMessages.push(...messages);
-
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -192,16 +179,9 @@ async function callOpenAI({ model, system, messages, max_tokens }) {
     },
     body: JSON.stringify({ model, messages: openaiMessages, max_tokens }),
   });
-
   let data;
-  try {
-    data = await res.json();
-  } catch {
-    throw new Error(`OpenAI returned invalid JSON (${res.status})`);
-  }
-
+  try { data = await res.json(); } catch { throw new Error(`OpenAI returned invalid JSON (${res.status})`); }
   if (!res.ok) throw new Error(data.error?.message || `OpenAI error ${res.status}`);
-
   const text = data.choices?.[0]?.message?.content ?? '';
   return {
     content: [{ type: 'text', text }],
