@@ -527,7 +527,10 @@ Rules:
     renderAll();
     toast(`✦ ${Object.keys(S.pages).length} pages generated`);
   } catch(err) {
-    toast('Error: ' + err.message);
+    const msg = err.message?.includes('JSON') || err.message?.includes('position')
+      ? 'Generation incomplete — response was cut off. Try a simpler description.'
+      : 'Error: ' + err.message;
+    toast(msg);
     setLoading(false);
   }
   setBtnState(false);
