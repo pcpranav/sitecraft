@@ -478,29 +478,29 @@ async function generateSite() {
   setLoading(true, 'Architecting your site');
   setBtnState(true);
   try {
-    const sys = `You are an expert web designer. Generate a single beautiful, self-contained HTML page.
+    const sys = `You are a web designer. Generate a single self-contained HTML page.
 
-Respond ONLY with a valid JSON object. Zero markdown, zero backticks, zero explanation outside the JSON.
+CRITICAL: Respond ONLY with valid JSON. No markdown, no backticks, no explanation.
 
-Required format:
+Format:
 {
   "pages": {
-    "index.html": "complete self-contained html string"
+    "index.html": "<complete html here>"
   },
   "shared.css": "",
   "shared.js": ""
 }
 
 Rules:
-- Create exactly 1 page: index.html
-- The HTML must be fully self-contained: all CSS and JS embedded with <style> and <script> tags inside the HTML
-- Use a modern, visually stunning design with gradients, animations, and hover effects
-- NO external stylesheets or scripts (no CDN links)
-- Use real, specific content - NO lorem ipsum
-- Make it look like it cost $50,000 to build
-- Keep HTML compact - no unnecessary whitespace or comments`;
+- ONE page only: index.html
+- ALL CSS and JS must be INLINE inside the HTML (no external files)
+- HTML must be UNDER 6000 characters total - be concise
+- Modern design: gradient hero, features grid, CTA section, footer
+- Real content specific to the site type - NO lorem ipsum
+- Use CSS variables and flexbox/grid
+- Add subtle CSS animations (fade-in, hover effects)`;
 
-        const raw = await callAI(sys, `Build a world-class single-page website: ${prompt}`, 4000);
+        const raw = await callAI(sys, `Create a website for: ${prompt}`, 2000);
     const clean = raw.trim().replace(/^```json\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
     const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
     if (s === -1 || e === -1) throw new Error('Invalid response — try again');
