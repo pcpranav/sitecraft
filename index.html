@@ -478,37 +478,29 @@ async function generateSite() {
   setLoading(true, 'Architecting your site');
   setBtnState(true);
   try {
-    const sys = `You are an elite web designer and developer. Generate a complete, stunning multi-page website.
+    const sys = `You are an expert web designer. Generate a single beautiful, self-contained HTML page.
 
 Respond ONLY with a valid JSON object. Zero markdown, zero backticks, zero explanation outside the JSON.
 
 Required format:
 {
   "pages": {
-    "index.html": "complete html string",
-    "about.html": "complete html string",
-    "services.html": "complete html string",
-    "contact.html": "complete html string"
+    "index.html": "complete self-contained html string"
   },
-  "shared.css": "complete css string",
-  "shared.js": "complete js string"
+  "shared.css": "",
+  "shared.js": ""
 }
 
 Rules:
-- Create exactly 2 pages (index.html + one other) appropriate to the site type
-- Each page is a COMPLETE HTML file starting with <!DOCTYPE html>
-- Each page links: <link rel="stylesheet" href="shared.css"> in <head>
-- Each page includes: <script src="shared.js"><\/script> before </body>
-- Navigation on EVERY page with working links to all other pages
-- Google Fonts import in every page <head>
-- shared.css: exceptional design — CSS custom properties, responsive, rich animations, hover effects, mobile menu
-- shared.js: hamburger nav, smooth scroll, intersection observer animations, form handling
-- Design must be VISUALLY EXCEPTIONAL — bold typography, striking color palette, memorable layout
-- NO lorem ipsum — use real, specific, compelling content
+- Create exactly 1 page: index.html
+- The HTML must be fully self-contained: all CSS and JS embedded with <style> and <script> tags inside the HTML
+- Use a modern, visually stunning design with gradients, animations, and hover effects
+- NO external stylesheets or scripts (no CDN links)
+- Use real, specific content - NO lorem ipsum
 - Make it look like it cost $50,000 to build
-- Smooth CSS transitions and keyframe animations throughout`;
+- Keep HTML compact - no unnecessary whitespace or comments`;
 
-    const raw = await callAI(sys, `Build a world-class website: ${prompt}`, 6000);
+        const raw = await callAI(sys, `Build a world-class single-page website: ${prompt}`, 4000);
     const clean = raw.trim().replace(/^```json\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
     const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
     if (s === -1 || e === -1) throw new Error('Invalid response — try again');
