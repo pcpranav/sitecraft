@@ -127,7 +127,7 @@ async function callGemini({ model, system, messages, max_tokens }) {
   }));
   const geminiBody = {
     contents,
-    generationConfig: { maxOutputTokens: max_tokens },
+    generationConfig: { maxOutputTokens: max_tokens, thinkingConfig: { thinkingBudget: 0 } },
   };
   if (system) {
     geminiBody.systemInstruction = { parts: [{ text: system }] };
