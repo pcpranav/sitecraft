@@ -1,264 +1,623 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Webcraft Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Lora:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
---night:#0e0e0f;--ink:#161618;--card:#1c1c1f;--lift:#242428;--edge:#2e2e33;--mute:#3a3a40;
---dim:#666672;--mid:#9999a8;--soft:#c8c8d8;--cream:#eeeef2;--white:#f8f8fc;
---accent:#e8d5a3;--accent2:#a3c4e8;--green:#6ee7b7;--red:#f87171;--amber:#fbbf24;
---r:8px;--rl:12px;
---font-display:'Syne',sans-serif;--font-mono:'JetBrains Mono',monospace;--font-serif:'Lora',serif;
+
+/* ── TOKENS ── */
+:root {
+  --font-sans: 'Inter', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --r: 8px; --rl: 12px; --rx: 16px;
+  --transition: .15s ease;
 }
-html,body{height:100%;overflow:hidden}
-body{font-family:var(--font-display);background:var(--night);color:var(--cream);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
-::-webkit-scrollbar{width:3px;height:3px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--mute);border-radius:4px}
+
+/* ── DARK THEME (default) ── */
+[data-theme="dark"] {
+  --bg:       #0d0d0f;
+  --surface:  #131316;
+  --panel:    #18181c;
+  --card:     #1e1e24;
+  --raise:    #26262e;
+  --border:   #2c2c36;
+  --border2:  #3a3a46;
+  --muted:    #52525e;
+  --subtle:   #7b7b8a;
+  --secondary:#a0a0b0;
+  --body:     #c8c8d8;
+  --heading:  #eeeef4;
+  --bright:   #f5f5fa;
+  --accent:   #7c6dfa;
+  --accent-h: #9b8eff;
+  --accent-s: rgba(124,109,250,.12);
+  --green:    #34d399;
+  --green-s:  rgba(52,211,153,.12);
+  --red:      #f87171;
+  --amber:    #fbbf24;
+  --blue:     #60a5fa;
+  --shadow:   0 4px 24px rgba(0,0,0,.4);
+  --shadow-lg:0 16px 48px rgba(0,0,0,.6);
+}
+
+/* ── LIGHT THEME ── */
+[data-theme="light"] {
+  --bg:       #f8f8fc;
+  --surface:  #f2f2f8;
+  --panel:    #ffffff;
+  --card:     #f8f8fc;
+  --raise:    #eeeef6;
+  --border:   #dddde8;
+  --border2:  #c8c8d8;
+  --muted:    #b0b0c0;
+  --subtle:   #8888a0;
+  --secondary:#606070;
+  --body:     #404050;
+  --heading:  #18181c;
+  --bright:   #0d0d0f;
+  --accent:   #6154e8;
+  --accent-h: #7c6dfa;
+  --accent-s: rgba(97,84,232,.1);
+  --green:    #059669;
+  --green-s:  rgba(5,150,105,.1);
+  --red:      #dc2626;
+  --amber:    #d97706;
+  --blue:     #2563eb;
+  --shadow:   0 2px 16px rgba(0,0,0,.08);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+}
+
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--body);
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  font-size: 13px;
+  line-height: 1.5;
+  transition: background var(--transition), color var(--transition);
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
 
 /* ── HEADER ── */
-.header{display:flex;align-items:center;gap:12px;padding:0 1.25rem;height:52px;border-bottom:1px solid var(--edge);background:var(--ink);flex-shrink:0;position:relative;z-index:20}
-.logo{font-size:15px;font-weight:800;letter-spacing:-.4px;color:var(--white);display:flex;align-items:center;gap:8px}
-.logo-mark{width:26px;height:26px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--night);flex-shrink:0}
-.logo-sub{font-size:10px;font-weight:500;color:var(--dim);font-family:var(--font-mono);letter-spacing:.06em;margin-top:1px}
-.hdr-mid{flex:1;display:flex;align-items:center;justify-content:center;gap:6px}
-.model-pill{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;border:1px solid var(--edge);background:var(--card);font-size:11px;font-family:var(--font-mono);color:var(--mid);cursor:pointer;transition:all .15s;user-select:none}
-.model-pill:hover{border-color:var(--mute);color:var(--soft)}
-.model-pill .pip{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.hdr-right{display:flex;align-items:center;gap:6px;margin-left:auto}
-.hdr-btn{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;font-family:var(--font-display);border:1px solid var(--edge);background:transparent;color:var(--mid);cursor:pointer;transition:all .15s}
-.hdr-btn:hover{border-color:var(--mute);color:var(--soft);background:var(--card)}
-.hdr-btn.accent{background:var(--accent);color:var(--night);border-color:var(--accent)}
-.hdr-btn.accent:hover{opacity:.85}
-.deploy-status{font-size:10px;font-family:var(--font-mono);display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid var(--edge);background:var(--card);color:var(--dim)}
-.pip{width:6px;height:6px;border-radius:50%;background:var(--mute);display:inline-block;flex-shrink:0}
-.pip.live{background:var(--green)}
-.pip.loading{background:var(--amber);animation:blink .9s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 1rem; height: 52px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  flex-shrink: 0; position: relative; z-index: 20;
+  box-shadow: 0 1px 0 var(--border);
+}
 
-/* ── LAYOUT ── */
-.workspace{display:flex;flex:1;overflow:hidden}
+.logo {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 14px; font-weight: 700;
+  color: var(--heading); letter-spacing: -.3px;
+  text-decoration: none; user-select: none;
+}
+.logo-icon {
+  width: 28px; height: 28px;
+  background: var(--accent);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #fff; flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(124,109,250,.4);
+}
+.logo-stack { display: flex; flex-direction: column; gap: 0; }
+.logo-name { font-size: 13px; font-weight: 700; color: var(--heading); letter-spacing: -.2px; }
+.logo-sub { font-size: 9px; font-family: var(--font-mono); color: var(--subtle); letter-spacing: .1em; text-transform: uppercase; margin-top: -1px; }
+
+.hdr-center { flex: 1; display: flex; align-items: center; justify-content: center; }
+.hdr-right { display: flex; align-items: center; gap: 6px; }
+
+/* ── MODEL PILL ── */
+.model-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 12px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--card);
+  font-size: 11px; font-family: var(--font-mono);
+  color: var(--secondary); cursor: pointer;
+  transition: all var(--transition); user-select: none;
+  position: relative;
+}
+.model-pill:hover { border-color: var(--border2); color: var(--body); background: var(--raise); }
+.pip { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.pip-green { background: var(--green); box-shadow: 0 0 0 2px var(--green-s); }
+.pip-blue { background: var(--blue); }
+.pip-amber { background: var(--amber); }
+.pip-purple { background: var(--accent); }
+.chevron { font-size: 9px; color: var(--subtle); transition: transform var(--transition); }
+.model-pill.open .chevron { transform: rotate(180deg); }
+
+/* ── MODEL DROPDOWN ── */
+.model-dropdown {
+  position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--rl); padding: 6px;
+  z-index: 200; min-width: 300px;
+  box-shadow: var(--shadow-lg); display: none; animation: fadeDown .15s ease;
+}
+@keyframes fadeDown { from { opacity: 0; transform: translateX(-50%) translateY(-6px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+.model-dropdown.open { display: block; }
+.md-section { margin-bottom: 4px; }
+.md-section:last-child { margin-bottom: 0; }
+.md-label {
+  font-size: 9px; font-family: var(--font-mono); letter-spacing: .1em;
+  text-transform: uppercase; color: var(--subtle);
+  padding: 6px 10px 3px; display: block;
+}
+.md-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--r);
+  cursor: pointer; transition: background var(--transition);
+  border: 1px solid transparent;
+}
+.md-item:hover { background: var(--card); border-color: var(--border); }
+.md-item.selected { background: var(--accent-s); border-color: rgba(124,109,250,.2); }
+.md-item-info { flex: 1; min-width: 0; }
+.md-item-name { font-size: 12px; font-weight: 600; color: var(--heading); }
+.md-item-desc { font-size: 10px; font-family: var(--font-mono); color: var(--subtle); margin-top: 1px; }
+.md-badge {
+  font-size: 9px; padding: 2px 6px; border-radius: 4px;
+  font-family: var(--font-mono); flex-shrink: 0;
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--secondary);
+}
+.md-divider { height: 1px; background: var(--border); margin: 4px 2px; }
+
+/* ── HEADER BUTTONS ── */
+.hdr-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--card);
+  font-size: 10px; font-family: var(--font-mono); color: var(--subtle);
+}
+.hdr-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: var(--r);
+  font-size: 12px; font-weight: 500; font-family: var(--font-sans);
+  border: 1px solid var(--border); background: transparent;
+  color: var(--secondary); cursor: pointer;
+  transition: all var(--transition); white-space: nowrap;
+}
+.hdr-btn:hover { background: var(--card); border-color: var(--border2); color: var(--body); }
+.hdr-btn-primary {
+  background: var(--accent) !important;
+  color: #fff !important; border-color: var(--accent) !important;
+  box-shadow: 0 2px 8px rgba(124,109,250,.3);
+}
+.hdr-btn-primary:hover { background: var(--accent-h) !important; box-shadow: 0 4px 12px rgba(124,109,250,.4) !important; }
+
+/* ── THEME TOGGLE ── */
+.theme-btn {
+  width: 32px; height: 32px; border-radius: var(--r);
+  border: 1px solid var(--border); background: transparent;
+  color: var(--secondary); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition); font-size: 14px;
+}
+.theme-btn:hover { background: var(--card); border-color: var(--border2); color: var(--body); }
+
+/* ── WORKSPACE ── */
+.workspace { display: flex; flex: 1; overflow: hidden; }
 
 /* ── SIDEBAR ── */
-.sidebar{width:260px;flex-shrink:0;border-right:1px solid var(--edge);display:flex;flex-direction:column;background:var(--ink);overflow:hidden}
-.sidebar-scroll{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:1.1rem}
-.sb-section{display:flex;flex-direction:column;gap:.5rem}
-.sb-label{font-size:9px;font-family:var(--font-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);padding:0 2px}
-textarea,input[type=text],select{font-family:var(--font-display);font-size:13px;background:var(--card);color:var(--cream);border:1px solid var(--edge);border-radius:var(--r);padding:9px 11px;outline:none;width:100%;transition:border-color .15s}
-textarea{resize:none;line-height:1.55}
-textarea:focus,input[type=text]:focus,select:focus{border-color:var(--mute)}
-select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666672'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
-select option{background:var(--card);color:var(--cream)}
-#promptArea{height:108px}
-.btn{font-family:var(--font-display);font-size:13px;font-weight:600;padding:9px 14px;border-radius:var(--r);border:1px solid var(--edge);background:transparent;color:var(--soft);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
-.btn:hover{background:var(--card);border-color:var(--mute)}
-.btn:disabled{opacity:.3;cursor:not-allowed}
-.btn-primary{background:var(--accent)!important;color:var(--night)!important;border-color:var(--accent)!important}
-.btn-primary:hover{opacity:.88!important;background:var(--accent)!important}
-.btn-green{background:var(--green)!important;color:var(--night)!important;border-color:var(--green)!important}
-.btn-green:hover{opacity:.88!important}
-.btn-full{width:100%}
-.btn-sm{font-size:11px;padding:5px 10px}
-.btn-row{display:flex;gap:6px}
+.sidebar {
+  width: 264px; flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  background: var(--surface);
+}
+.sidebar-scroll {
+  flex: 1; overflow-y: auto; padding: 14px 12px;
+  display: flex; flex-direction: column; gap: 20px;
+  scroll-behavior: smooth;
+}
+/* Scroll shadow affordance */
+.sidebar-scroll::after {
+  content: ''; display: block;
+  height: 40px; flex-shrink: 0;
+}
 
-/* CHIPS */
-.chips{display:flex;flex-wrap:wrap;gap:5px}
-.chip{font-size:11px;font-family:var(--font-mono);padding:3px 9px;border-radius:20px;border:1px solid var(--edge);background:transparent;color:var(--dim);cursor:pointer;transition:all .15s}
-.chip:hover{border-color:var(--mute);color:var(--soft);background:var(--lift)}
+.sb-section { display: flex; flex-direction: column; gap: 6px; }
+.sb-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.sb-label {
+  font-size: 9px; font-family: var(--font-mono); letter-spacing: .12em;
+  text-transform: uppercase; color: var(--subtle); padding: 0 1px;
+}
+.sb-hint {
+  font-size: 9px; font-family: var(--font-mono);
+  color: var(--muted); padding: 0 1px;
+}
+.sb-divider { height: 1px; background: var(--border); margin: 4px 0; }
 
-/* PAGE LIST */
-.pg-list{display:flex;flex-direction:column;gap:2px}
-.pg-item{display:flex;align-items:center;justify-content:space-between;padding:6px 9px;border-radius:var(--r);border:1px solid transparent;cursor:pointer;transition:all .12s}
-.pg-item:hover{background:var(--card);border-color:var(--edge)}
-.pg-item.active{background:var(--lift);border-color:var(--mute)}
-.pg-left{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
-.pg-fname{font-size:11px;font-family:var(--font-mono);color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pg-item.active .pg-fname{color:var(--cream)}
-.pg-dot{width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0}
-.pg-del{background:none;border:none;color:var(--dim);cursor:pointer;padding:2px 5px;border-radius:4px;font-size:11px;opacity:0;transition:all .12s}
-.pg-item:hover .pg-del{opacity:1}
-.pg-del:hover{color:var(--red);background:rgba(248,113,113,.1)}
+/* ── INPUTS ── */
+textarea, input[type="text"] {
+  font-family: var(--font-sans); font-size: 12.5px;
+  background: var(--card); color: var(--body);
+  border: 1px solid var(--border); border-radius: var(--r);
+  padding: 9px 11px; outline: none; width: 100%;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  resize: none;
+}
+textarea:focus, input[type="text"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-s);
+}
+textarea::placeholder, input::placeholder { color: var(--muted); }
+#promptArea { height: 96px; line-height: 1.55; }
 
-/* FILE TREE */
-.file-tree{display:flex;flex-direction:column;gap:1px}
-.fe{display:flex;align-items:center;gap:7px;padding:5px 9px;border-radius:6px;font-size:11px;font-family:var(--font-mono);color:var(--dim);cursor:pointer;transition:all .12s}
-.fe:hover,.fe.active{background:var(--card);color:var(--soft)}
-.fe.active{color:var(--cream)}
-.fe-dot{width:4px;height:4px;border-radius:50%;flex-shrink:0}
-.fe-html .fe-dot{background:#e8834a}
-.fe-css .fe-dot{background:#5b9bd5}
-.fe-js .fe-dot{background:var(--amber)}
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-family: var(--font-sans); font-size: 12.5px; font-weight: 500;
+  padding: 8px 14px; border-radius: var(--r);
+  border: 1px solid var(--border); background: var(--card);
+  color: var(--secondary); cursor: pointer;
+  transition: all var(--transition); white-space: nowrap;
+}
+.btn:hover { background: var(--raise); border-color: var(--border2); color: var(--body); }
+.btn:disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
+.btn:active { transform: scale(.98); }
 
-/* HISTORY */
-.hist-list{display:flex;flex-direction:column;gap:2px}
-.hi{padding:6px 9px;border-radius:var(--r);font-size:11px;color:var(--dim);cursor:pointer;border:1px solid transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all .12s}
-.hi:hover{background:var(--card);border-color:var(--edge);color:var(--soft)}
-.hi.active{background:var(--lift);border-color:var(--mute);color:var(--cream)}
+.btn-primary {
+  background: var(--accent) !important; color: #fff !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 2px 10px rgba(124,109,250,.35);
+  font-weight: 600;
+}
+.btn-primary:hover { background: var(--accent-h) !important; box-shadow: 0 4px 14px rgba(124,109,250,.45) !important; }
 
-/* NOTICE */
-.notice{font-size:11px;font-family:var(--font-mono);padding:8px 10px;border-radius:var(--r);background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);color:var(--amber);line-height:1.5}
-.notice.green{background:rgba(110,231,183,.06);border-color:rgba(110,231,183,.2);color:var(--green)}
-.notice.blue{background:rgba(163,196,232,.06);border-color:rgba(163,196,232,.2);color:var(--accent2)}
+.btn-success {
+  background: var(--green) !important; color: #fff !important;
+  border-color: var(--green) !important;
+  box-shadow: 0 2px 8px var(--green-s);
+  font-weight: 600;
+}
+.btn-success:hover { opacity: .9 !important; }
+
+.btn-ghost { background: transparent !important; }
+.btn-ghost:hover { background: var(--card) !important; }
+
+.btn-sm { font-size: 11px; padding: 4px 9px; }
+.btn-xs { font-size: 10px; padding: 2px 7px; font-family: var(--font-mono); }
+.btn-full { width: 100%; }
+.btn-row { display: flex; gap: 6px; }
+
+/* ── CHIPS ── */
+.chips-wrap { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip {
+  font-size: 10px; font-family: var(--font-mono);
+  padding: 3px 8px; border-radius: 20px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--subtle); cursor: pointer;
+  transition: all var(--transition);
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-s); }
+
+/* ── TOKEN METER ── */
+.token-meter {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 8px 10px;
+}
+.token-meter-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.token-meter-label { font-size: 10px; font-family: var(--font-mono); color: var(--subtle); }
+.token-meter-val { font-size: 10px; font-family: var(--font-mono); color: var(--secondary); }
+.token-meter-val span { color: var(--body); }
+.token-bar-track { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.token-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .5s ease; width: 0%; }
+.token-bar-fill.warn { background: var(--amber); }
+.token-bar-fill.danger { background: var(--red); }
+
+/* ── PAGE LIST ── */
+.pg-list { display: flex; flex-direction: column; gap: 2px; }
+.pg-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 8px; border-radius: var(--r);
+  border: 1px solid transparent; cursor: pointer;
+  transition: all .12s;
+}
+.pg-item:hover { background: var(--card); border-color: var(--border); }
+.pg-item.active { background: var(--raise); border-color: var(--border2); }
+.pg-left { display: flex; align-items: center; gap: 7px; min-width: 0; flex: 1; }
+.pg-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+.pg-name {
+  font-size: 11px; font-family: var(--font-mono); color: var(--secondary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pg-item.active .pg-name { color: var(--heading); }
+.pg-actions { display: flex; gap: 2px; opacity: 0; transition: opacity .12s; }
+.pg-item:hover .pg-actions { opacity: 1; }
+.pg-action-btn {
+  width: 20px; height: 20px; border: none; background: transparent;
+  color: var(--subtle); cursor: pointer; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; transition: all .12s;
+}
+.pg-action-btn:hover { background: var(--border); color: var(--body); }
+.pg-action-btn.del:hover { color: var(--red); background: rgba(248,113,113,.12); }
+
+/* ── FILE TREE ── */
+.file-tree { display: flex; flex-direction: column; gap: 1px; }
+.ft-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 8px; border-radius: 6px;
+  font-size: 11px; font-family: var(--font-mono);
+  color: var(--subtle); cursor: pointer; transition: all .12s;
+}
+.ft-item:hover, .ft-item.active { background: var(--card); color: var(--secondary); }
+.ft-item.active { color: var(--heading); }
+.ft-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
+.ft-html .ft-dot { background: #e8834a; }
+.ft-css .ft-dot { background: #5b9bd5; }
+.ft-js .ft-dot { background: var(--amber); }
+
+/* ── HISTORY ── */
+.hist-list { display: flex; flex-direction: column; gap: 2px; }
+.hi {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 8px; border-radius: var(--r);
+  font-size: 11px; color: var(--subtle);
+  cursor: pointer; border: 1px solid transparent;
+  transition: all .12s;
+}
+.hi:hover { background: var(--card); border-color: var(--border); color: var(--secondary); }
+.hi.active { background: var(--raise); border-color: var(--border2); color: var(--body); }
+.hi-icon { font-size: 9px; color: var(--accent); flex-shrink: 0; }
+.hi-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.hi-time { font-size: 9px; font-family: var(--font-mono); color: var(--muted); flex-shrink: 0; }
+
+/* ── NOTICE / CALLOUT ── */
+.callout {
+  font-size: 11px; font-family: var(--font-mono); line-height: 1.55;
+  padding: 9px 11px; border-radius: var(--r);
+}
+.callout-info { background: var(--accent-s); border: 1px solid rgba(124,109,250,.2); color: var(--accent-h); }
+.callout-success { background: var(--green-s); border: 1px solid rgba(52,211,153,.2); color: var(--green); }
+.callout-warn { background: rgba(251,191,36,.06); border: 1px solid rgba(251,191,36,.2); color: var(--amber); }
 
 /* ── PREVIEW PANE ── */
-.preview{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--night)}
-.toolbar{display:flex;align-items:center;gap:8px;padding:0 1rem;height:44px;border-bottom:1px solid var(--edge);background:var(--ink);flex-shrink:0}
-.tls{display:flex;gap:5px;flex-shrink:0}
-.tl{width:10px;height:10px;border-radius:50%;background:var(--mute)}
-.url-bar{flex:1;height:26px;font-family:var(--font-mono);font-size:11px;padding:0 10px;border:1px solid var(--edge);border-radius:20px;background:var(--card);color:var(--dim);outline:none;min-width:0}
-.page-tabs{display:flex;gap:2px;overflow-x:auto;max-width:400px;flex-shrink:0}
-.page-tabs::-webkit-scrollbar{height:0}
-.ptab{font-size:10px;font-family:var(--font-mono);padding:4px 10px;border-radius:20px;border:1px solid transparent;color:var(--dim);cursor:pointer;white-space:nowrap;transition:all .12s;background:transparent}
-.ptab:hover{color:var(--soft)}
-.ptab.active{border-color:var(--edge);background:var(--card);color:var(--cream)}
+.preview { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+.toolbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 1rem; height: 44px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel); flex-shrink: 0;
+}
+.traffic-lights { display: flex; gap: 5px; flex-shrink: 0; }
+.tl { width: 10px; height: 10px; border-radius: 50%; }
+.tl-r { background: #ff5f57; } .tl-y { background: #febc2e; } .tl-g { background: #28c840; }
 
-/* FRAME */
-#frameArea{flex:1;overflow:auto;background:#fff;position:relative}
-iframe{width:100%;border:none;display:block}
+/* Viewport toggle */
+.vp-group {
+  display: flex; gap: 2px; padding: 3px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 22px;
+}
+.vp-btn {
+  width: 26px; height: 26px; border-radius: 13px;
+  border: none; background: transparent;
+  color: var(--subtle); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .12s;
+}
+.vp-btn:hover { color: var(--secondary); }
+.vp-btn.active { background: var(--raise); color: var(--heading); }
+.vp-btn svg { width: 13px; height: 13px; }
 
-/* EMPTY STATE */
-.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:2rem;text-align:center}
-.empty-glyph{width:72px;height:72px;border-radius:16px;background:var(--card);border:1px solid var(--edge);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:4px}
-.empty h2{font-size:22px;font-weight:700;color:var(--cream);letter-spacing:-.4px}
-.empty p{font-size:13px;color:var(--dim);max-width:280px;line-height:1.65;font-weight:400}
-.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;width:100%;max-width:340px}
-.feat-item{background:var(--card);border:1px solid var(--edge);border-radius:var(--r);padding:10px 12px;text-align:left}
-.feat-item .fi-title{font-size:11px;font-weight:600;color:var(--soft);margin-bottom:2px}
-.feat-item .fi-desc{font-size:10px;font-family:var(--font-mono);color:var(--dim);line-height:1.4}
+.url-bar {
+  flex: 1; height: 28px; min-width: 0;
+  font-family: var(--font-mono); font-size: 11px;
+  padding: 0 12px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--card);
+  color: var(--subtle); outline: none; cursor: default;
+  transition: border-color var(--transition);
+}
+.url-bar:focus { border-color: var(--border2); cursor: text; }
 
-/* LOADING */
-.loading-ov{position:absolute;inset:0;background:rgba(14,14,15,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:10;backdrop-filter:blur(4px)}
-.spinner{width:32px;height:32px;border:2px solid var(--edge);border-top-color:var(--accent);border-radius:50%;animation:spin .65s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-label{font-size:12px;font-family:var(--font-mono);color:var(--mid);letter-spacing:.05em;animation:pulse 1.6s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.loading-progress{display:flex;gap:4px;align-items:center}
-.loading-step{width:6px;height:6px;border-radius:50%;background:var(--mute);transition:background .3s}
-.loading-step.done{background:var(--accent)}
-.loading-step.active{background:var(--accent);animation:blink .7s infinite}
- 
-/* VIEWPORTS */
-.vp-toggles{display:flex;gap:4px;margin:0 12px;padding:3px;background:var(--card);border:1px solid var(--edge);border-radius:20px}
-.vp-btn{width:24px;height:24px;border-radius:12px;border:none;background:transparent;color:var(--dim);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.vp-btn:hover{color:var(--soft)}
-.vp-btn.active{background:var(--lift);color:var(--accent)}
-.vp-btn svg{width:14px;height:14px}
- 
-#previewArea{perspective:1000px}
-#frameArea{transition:width .3s cubic-bezier(.4,0,.2,1), margin .3s ease;box-shadow:0 24px 64px rgba(0,0,0,.3)}
-#frameArea.mobile{width:375px;margin:1.5rem auto;border-radius:24px;border:8px solid var(--edge)}
-#frameArea.tablet{width:768px;margin:1.5rem auto;border-radius:12px;border:6px solid var(--edge)}
-#frameArea.desktop{width:100%;margin:0;border-radius:0;border:none}
+.page-tabs { display: flex; gap: 2px; overflow-x: auto; max-width: 360px; flex-shrink: 0; }
+.page-tabs::-webkit-scrollbar { height: 0; }
+.ptab {
+  font-size: 10px; font-family: var(--font-mono);
+  padding: 4px 10px; border-radius: 20px;
+  border: 1px solid transparent; color: var(--subtle);
+  cursor: pointer; white-space: nowrap; transition: all .12s;
+}
+.ptab:hover { color: var(--secondary); }
+.ptab.active { border-color: var(--border); background: var(--card); color: var(--heading); }
 
-/* CODE VIEW */
-.code-view{flex:1;overflow:auto;background:var(--night);padding:1.25rem}
-pre{font-family:var(--font-mono);font-size:12px;color:var(--soft);white-space:pre-wrap;word-break:break-all;line-height:1.7}
+/* ── FRAME ── */
+#previewArea { flex: 1; overflow: hidden; position: relative; display: flex; flex-direction: column; }
+#frameArea {
+  background: #fff; flex: 1; overflow: auto;
+  transition: width .3s cubic-bezier(.4,0,.2,1), margin .3s ease, border-radius .3s ease;
+}
+#frameArea.mobile { width: 375px; margin: 16px auto; border-radius: 24px; border: 8px solid var(--border2); flex: none; height: calc(100% - 32px); }
+#frameArea.tablet { width: 768px; margin: 16px auto; border-radius: 12px; border: 6px solid var(--border2); flex: none; height: calc(100% - 32px); }
+#frameArea.desktop { width: 100%; margin: 0; border-radius: 0; border: none; }
+iframe { width: 100%; border: none; display: block; }
 
-/* TOAST */
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--lift);color:var(--cream);font-size:12px;font-family:var(--font-mono);padding:9px 18px;border-radius:20px;border:1px solid var(--mute);z-index:999;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* ── EMPTY STATE ── */
+.empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px; padding: 2rem; text-align: center;
+}
+.empty-icon {
+  width: 64px; height: 64px; border-radius: 16px;
+  background: var(--accent-s); border: 1px solid rgba(124,109,250,.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; margin-bottom: 4px;
+}
+.empty h2 { font-size: 20px; font-weight: 700; color: var(--heading); letter-spacing: -.3px; }
+.empty p { font-size: 12.5px; color: var(--subtle); max-width: 280px; line-height: 1.7; }
+.feat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; width: 100%; max-width: 320px; margin-top: 4px; }
+.feat-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 10px 12px; text-align: left;
+}
+.feat-card-title { font-size: 11px; font-weight: 600; color: var(--body); margin-bottom: 2px; }
+.feat-card-desc { font-size: 10px; font-family: var(--font-mono); color: var(--subtle); line-height: 1.4; }
 
-/* MODEL SWITCHER DROPDOWN */
-.model-menu{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--edge);border-radius:var(--rl);padding:8px;z-index:100;min-width:280px;box-shadow:0 16px 48px rgba(0,0,0,.5);display:none}
-.model-menu.open{display:block}
-.mm-section{margin-bottom:8px}
-.mm-label{font-size:9px;font-family:var(--font-mono);color:var(--dim);letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;margin-bottom:2px}
-.mm-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);cursor:pointer;transition:background .12s}
-.mm-item:hover{background:var(--lift)}
-.mm-item.selected{background:var(--lift)}
-.mm-item-info{flex:1;min-width:0}
-.mm-item-name{font-size:12px;font-weight:600;color:var(--cream)}
-.mm-item-desc{font-size:10px;font-family:var(--font-mono);color:var(--dim);margin-top:1px}
-.mm-badge{font-size:9px;padding:2px 6px;border-radius:4px;font-family:var(--font-mono);flex-shrink:0}
-.mm-badge.cheap{background:rgba(163,196,232,.1);color:var(--accent2);border:1px solid rgba(163,196,232,.2)}
-.mm-badge.best{background:rgba(232,213,163,.1);color:var(--accent);border:1px solid rgba(232,213,163,.2)}
-.mm-divider{height:1px;background:var(--edge);margin:6px 0}
+/* ── LOADING OVERLAY ── */
+.loading-ov {
+  position: absolute; inset: 0;
+  background: rgba(13,13,15,.85);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 16px;
+  z-index: 10; backdrop-filter: blur(6px);
+}
+[data-theme="light"] .loading-ov { background: rgba(248,248,252,.88); }
+.spinner {
+  width: 28px; height: 28px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .65s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-msg {
+  font-size: 11px; font-family: var(--font-mono);
+  color: var(--secondary); letter-spacing: .04em;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+.loading-steps { display: flex; gap: 4px; }
+.lstep {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border2); transition: background .3s;
+}
+.lstep.done { background: var(--accent); }
+.lstep.active { background: var(--accent); animation: blink .7s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
 
-/* DEPLOY PANEL */
-.deploy-out{font-size:11px;font-family:var(--font-mono);color:var(--green);margin-top:6px;display:none}
-.deploy-out a{color:var(--green)}
+/* ── CODE VIEW ── */
+.code-view { flex: 1; overflow: auto; padding: 1.25rem; background: var(--bg); }
+pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); white-space: pre-wrap; word-break: break-all; line-height: 1.7; }
 
-/* USAGE BAR */
-.usage-bar{background:var(--card);border:1px solid var(--edge);border-radius:var(--r);padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
-.usage-label{font-size:10px;font-family:var(--font-mono);color:var(--dim)}
-.usage-val{font-size:10px;font-family:var(--font-mono);color:var(--soft)}
-.token-bar-wrap{flex:1;height:3px;background:var(--mute);border-radius:2px;overflow:hidden}
-.token-bar{height:100%;background:var(--accent);border-radius:2px;transition:width .4s;width:0%}
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(12px);
+  background: var(--raise); color: var(--heading);
+  font-size: 11px; font-family: var(--font-mono);
+  padding: 8px 16px; border-radius: 20px;
+  border: 1px solid var(--border2);
+  box-shadow: var(--shadow);
+  z-index: 999; opacity: 0; transition: all .25s;
+  pointer-events: none; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── DEPLOY OUTPUT ── */
+.deploy-out {
+  font-size: 11px; font-family: var(--font-mono);
+  color: var(--green); margin-top: 6px; display: none;
+  line-height: 1.55;
+}
+.deploy-out a { color: var(--green); text-decoration: underline; }
+
+/* ── GEN BTN LOADING ── */
+.gen-spinner {
+  width: 13px; height: 13px;
+  border: 1.5px solid rgba(255,255,255,.3);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin .65s linear infinite;
+}
+
+/* ── UNDO HINT ── */
+.undo-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 2px;
+}
+.undo-hint { font-size: 10px; font-family: var(--font-mono); color: var(--muted); }
+.undo-btn {
+  font-size: 10px; font-family: var(--font-mono);
+  color: var(--accent); background: none; border: none;
+  cursor: pointer; padding: 1px 4px; border-radius: 4px;
+  transition: background var(--transition);
+}
+.undo-btn:hover { background: var(--accent-s); }
 </style>
 </head>
 <body>
-
 <!-- HEADER -->
 <div class="header">
-  <div class="logo">
-    <div class="logo-mark">W</div>
-    <div>
-      <div>Webcraft</div>
-      <div class="logo-sub">studio</div>
+  <a class="logo">
+    <div class="logo-icon">W</div>
+    <div class="logo-stack">
+      <span class="logo-name">Webcraft</span>
+      <span class="logo-sub">studio</span>
     </div>
-  </div>
-
-  <div class="hdr-mid" style="position:relative">
-    <div class="model-pill" id="modelPill" onclick="toggleModelMenu()">
-      <span class="pip" id="modelPip" style="background:var(--green)"></span>
+  </a>
+  <div class="hdr-center" style="position:relative">
+    <div class="model-pill" id="modelPill" onclick="toggleModelMenu(event)">
+      <span class="pip pip-green" id="modelPip"></span>
       <span id="modelPillText">gemini-2.5-flash</span>
-      <span style="color:var(--dim);font-size:10px">▾</span>
+      <span class="chevron" id="modelChevron">▾</span>
     </div>
-    <div class="model-menu" id="modelMenu">
-      <div class="mm-section">
-        <div class="mm-label">Google Gemini</div>
-        <div class="mm-item selected" data-provider="gemini" data-model="gemini-2.5-flash" data-label="gemini-2.5-flash" data-pip="green" onclick="selectModel(this)">
-          <span class="pip" style="background:var(--green)"></span>
-          <div class="mm-item-info"><div class="mm-item-name">Gemini 2.5 Flash</div><div class="mm-item-desc">Fast, very cheap, great quality</div></div>
-          <span class="mm-badge cheap">~$0.001/gen</span>
+    <div class="model-dropdown" id="modelDropdown">
+      <div class="md-section">
+        <span class="md-label">Google Gemini</span>
+        <div class="md-item selected" data-provider="gemini" data-model="gemini-2.5-flash" data-label="gemini-2.5-flash" data-pip="green" onclick="selectModel(this)">
+          <span class="pip pip-green"></span>
+          <div class="md-item-info"><div class="md-item-name">Gemini 2.5 Flash</div><div class="md-item-desc">Fast · very cheap · great quality</div></div>
+          <span class="md-badge">~$0.001/gen</span>
         </div>
-        <div class="mm-item" data-provider="gemini" data-model="gemini-2.5-pro" data-label="gemini-2.5-pro" data-pip="blue" onclick="selectModel(this)">
-          <span class="pip" style="background:var(--accent2)"></span>
-          <div class="mm-item-info"><div class="mm-item-name">Gemini 2.5 Pro</div><div class="mm-item-desc">Best quality, moderate cost</div></div>
-          <span class="mm-badge best">~$0.01/gen</span>
-        </div>
-      </div>
-      <div class="mm-divider"></div>
-      <div class="mm-section">
-        <div class="mm-label">OpenAI</div>
-        <div class="mm-item" data-provider="openai" data-model="gpt-4.1-mini" data-label="gpt-4.1-mini" data-pip="blue" onclick="selectModel(this)">
-          <span class="pip" style="background:var(--accent2)"></span>
-          <div class="mm-item-info"><div class="mm-item-name">GPT-4.1 Mini</div><div class="mm-item-desc">Cheap & capable</div></div>
-          <span class="mm-badge cheap">~$0.002/gen</span>
-        </div>
-        <div class="mm-item" data-provider="openai" data-model="gpt-4.1" data-label="gpt-4.1" data-pip="blue" onclick="selectModel(this)">
-          <span class="pip" style="background:var(--accent2)"></span>
-          <div class="mm-item-info"><div class="mm-item-name">GPT-4.1</div><div class="mm-item-desc">Premium OpenAI model</div></div>
-          <span class="mm-badge best">~$0.02/gen</span>
+        <div class="md-item" data-provider="gemini" data-model="gemini-2.5-pro" data-label="gemini-2.5-pro" data-pip="blue" onclick="selectModel(this)">
+          <span class="pip pip-blue"></span>
+          <div class="md-item-info"><div class="md-item-name">Gemini 2.5 Pro</div><div class="md-item-desc">Best quality · moderate cost</div></div>
+          <span class="md-badge">~$0.01/gen</span>
         </div>
       </div>
-      <div class="mm-divider"></div>
-      <div class="mm-section">
-        <div class="mm-label">Anthropic</div>
-        <div class="mm-item" data-provider="anthropic" data-model="claude-haiku-4-5-20251001" data-label="claude-haiku" data-pip="amber" onclick="selectModel(this)">
-          <span class="pip" style="background:var(--amber)"></span>
-          <div class="mm-item-info"><div class="mm-item-name">Claude Haiku</div><div class="mm-item-desc">Cheapest Claude model</div></div>
-          <span class="mm-badge cheap">~$0.005/gen</span>
+      <div class="md-divider"></div>
+      <div class="md-section">
+        <span class="md-label">OpenAI</span>
+        <div class="md-item" data-provider="openai" data-model="gpt-4.1-mini" data-label="gpt-4.1-mini" data-pip="blue" onclick="selectModel(this)">
+          <span class="pip pip-blue"></span>
+          <div class="md-item-info"><div class="md-item-name">GPT-4.1 Mini</div><div class="md-item-desc">Cheap & capable</div></div>
+          <span class="md-badge">~$0.002/gen</span>
         </div>
-        <div class="mm-item" data-provider="anthropic" data-model="claude-sonnet-4-20250514" data-label="claude-sonnet" data-pip="amber" onclick="selectModel(this)">
-          <span class="pip" style="background:var(--amber)"></span>
-          <div class="mm-item-info"><div class="mm-item-name">Claude Sonnet</div><div class="mm-item-desc">Best Claude quality</div></div>
-          <span class="mm-badge best">~$0.07/gen</span>
+        <div class="md-item" data-provider="openai" data-model="gpt-4.1" data-label="gpt-4.1" data-pip="blue" onclick="selectModel(this)">
+          <span class="pip pip-blue"></span>
+          <div class="md-item-info"><div class="md-item-name">GPT-4.1</div><div class="md-item-desc">Premium OpenAI model</div></div>
+          <span class="md-badge">~$0.02/gen</span>
+        </div>
+      </div>
+      <div class="md-divider"></div>
+      <div class="md-section">
+        <span class="md-label">Anthropic</span>
+        <div class="md-item" data-provider="anthropic" data-model="claude-haiku-4-5-20251001" data-label="claude-haiku" data-pip="amber" onclick="selectModel(this)">
+          <span class="pip pip-amber"></span>
+          <div class="md-item-info"><div class="md-item-name">Claude Haiku</div><div class="md-item-desc">Cheapest Claude model</div></div>
+          <span class="md-badge">~$0.005/gen</span>
+        </div>
+        <div class="md-item" data-provider="anthropic" data-model="claude-sonnet-4-20250514" data-label="claude-sonnet" data-pip="amber" onclick="selectModel(this)">
+          <span class="pip pip-amber"></span>
+          <div class="md-item-info"><div class="md-item-name">Claude Sonnet</div><div class="md-item-desc">Best Claude quality</div></div>
+          <span class="md-badge">~$0.07/gen</span>
         </div>
       </div>
     </div>
   </div>
-
   <div class="hdr-right">
-    <div class="deploy-status"><span class="pip" id="dPip"></span><span id="dText">not deployed</span></div>
-    <button class="hdr-btn" id="viewToggle" onclick="toggleView()">{ } code</button>
-    <button class="hdr-btn accent" id="deployHdrBtn" style="display:none" onclick="scrollDeploy()">deploy ↗</button>
+    <div class="hdr-badge"><span class="pip" id="dPip" style="background:var(--muted)"></span><span id="dText">not deployed</span></div>
+    <button class="hdr-btn" id="viewToggle" onclick="toggleView()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      code
+    </button>
+    <button class="hdr-btn hdr-btn-primary" id="deployHdrBtn" style="display:none" onclick="scrollDeploy()">deploy ↗</button>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark mode">
+      <span id="themeIcon">☾</span>
+    </button>
   </div>
 </div>
 
@@ -266,106 +625,139 @@ pre{font-family:var(--font-mono);font-size:12px;color:var(--soft);white-space:pr
 <div class="workspace">
   <!-- SIDEBAR -->
   <div class="sidebar">
-    <div class="sidebar-scroll">
+    <div class="sidebar-scroll" id="sidebarScroll">
 
-      <!-- PROMPT -->
+      <!-- IDEA SECTION -->
       <div class="sb-section">
-        <div class="sb-label">idea</div>
-        <textarea id="promptArea" placeholder="A luxury watch brand — hero with video bg, product showcase, about us, and contact. Dark gold minimal aesthetic."></textarea>
-        <div class="chips" id="chips"></div>
+        <div class="sb-header">
+          <span class="sb-label">Idea</span>
+          <span class="sb-hint" id="charCount">0 chars</span>
+        </div>
+        <textarea id="promptArea" placeholder="A luxury watch brand — hero with video bg, product showcase, about us, and contact. Dark gold minimal aesthetic." oninput="onPromptInput()"></textarea>
+        <div id="undoRow" class="undo-row" style="display:none">
+          <span class="undo-hint">Idea replaced by template</span>
+          <button class="undo-btn" onclick="undoChip()">↩ undo</button>
+        </div>
+        <div class="chips-wrap" id="chips"></div>
         <button class="btn btn-primary btn-full" id="genBtn" onclick="generateSite()">
-          <span id="genBtnIcon">✦</span> <span id="genBtnText">Generate website</span>
+          <span id="genBtnIcon">✦</span>
+          <span id="genBtnText">Generate website</span>
         </button>
       </div>
 
-      <!-- TOKEN USAGE -->
-      <div id="usageSection" style="display:none">
-        <div class="usage-bar">
-          <div class="usage-label">tokens used</div>
-          <div class="token-bar-wrap"><div class="token-bar" id="tokenBar"></div></div>
-          <div class="usage-val" id="tokenCount">0</div>
+      <!-- TOKEN METER -->
+      <div class="sb-section" id="usageSection" style="display:none">
+        <div class="token-meter">
+          <div class="token-meter-row">
+            <span class="token-meter-label">tokens used</span>
+            <span class="token-meter-val"><span id="tokenCount">0</span> / <span id="tokenLimit">100k</span></span>
+          </div>
+          <div class="token-bar-track"><div class="token-bar-fill" id="tokenBar"></div></div>
         </div>
       </div>
 
       <!-- PAGES -->
       <div class="sb-section" id="pagesSection" style="display:none">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div class="sb-label">pages</div>
-          <button class="btn btn-sm" onclick="addPage()" style="padding:2px 8px;font-size:10px">+ add</button>
+        <div class="sb-header">
+          <span class="sb-label">Pages</span>
+          <button class="btn btn-xs btn-ghost" onclick="addPage()">+ add</button>
         </div>
         <div class="pg-list" id="pgList"></div>
       </div>
 
       <!-- FILES -->
       <div class="sb-section" id="filesSection" style="display:none">
-        <div class="sb-label">files</div>
+        <div class="sb-header">
+          <span class="sb-label">Files</span>
+        </div>
         <div class="file-tree" id="fileTree"></div>
       </div>
 
       <!-- REFINE -->
       <div class="sb-section" id="refineSection" style="display:none">
-        <div class="sb-label">refine page</div>
-        <input type="text" id="refineInput" placeholder="Make hero taller, add animations..." />
-        <button class="btn btn-full" id="refineBtn" onclick="refinePage()">apply changes ↗</button>
+        <div class="sb-header">
+          <span class="sb-label">Edit with AI</span>
+        </div>
+        <input type="text" id="refineInput" placeholder="Make hero taller, add animations…"/>
+        <button class="btn btn-full" id="refineBtn" onclick="refinePage()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Apply changes
+        </button>
       </div>
 
       <!-- EXPORT -->
       <div class="sb-section" id="exportSection" style="display:none">
-        <div class="sb-label">export</div>
+        <div class="sb-header"><span class="sb-label">Export</span></div>
         <div class="btn-row">
-          <button class="btn btn-full btn-sm" onclick="downloadZip()">⬇ zip</button>
-          <button class="btn btn-full btn-sm" onclick="downloadPage()">⬇ html</button>
+          <button class="btn btn-full btn-sm" onclick="downloadZip()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            ZIP
+          </button>
+          <button class="btn btn-full btn-sm" onclick="downloadPage()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            HTML
+          </button>
         </div>
       </div>
 
       <!-- DEPLOY -->
       <div class="sb-section" id="deploySection" style="display:none">
-        <div class="sb-label">deploy</div>
-        <div class="notice" style="margin-bottom:8px">Deploy pushes a ZIP to your Netlify site.</div>
+        <div class="sb-header"><span class="sb-label">Deploy to Netlify</span></div>
+        <div class="callout callout-info" style="margin-bottom:6px">Pushes a ZIP to your connected Netlify site.</div>
         <input type="text" id="siteNameInput" placeholder="my-site-name" style="margin-bottom:6px"/>
-        <button class="btn btn-green btn-full" id="deployBtn" onclick="doNetlifyDeploy()">deploy live ↗</button>
+        <button class="btn btn-success btn-full" id="deployBtn" onclick="doNetlifyDeploy()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Deploy live
+        </button>
         <div class="deploy-out" id="deployOut"></div>
       </div>
 
       <!-- HISTORY -->
       <div class="sb-section">
-        <div class="sb-label">history</div>
+        <div class="sb-header">
+          <span class="sb-label">History</span>
+          <button class="btn btn-xs btn-ghost" onclick="clearHistory()" id="clearHistBtn" style="display:none">clear</button>
+        </div>
         <div class="hist-list" id="histList">
-          <div style="font-size:11px;font-family:var(--font-mono);color:var(--dim);padding:4px 0">No sites yet</div>
+          <div style="font-size:11px;font-family:var(--font-mono);color:var(--muted);padding:4px 2px">No sites yet</div>
         </div>
       </div>
 
     </div>
   </div>
 
-  <!-- PREVIEW -->
+  <!-- PREVIEW / CODE PANE -->
   <div class="preview">
     <div class="toolbar">
-      <div class="tls"><div class="tl"></div><div class="tl"></div><div class="tl"></div></div>
-      <div class="vp-toggles">
+      <div class="traffic-lights">
+        <div class="tl tl-r"></div>
+        <div class="tl tl-y"></div>
+        <div class="tl tl-g"></div>
+      </div>
+      <div class="vp-group">
         <button class="vp-btn active" id="vp-desktop" onclick="setViewport('desktop')" title="Desktop">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         </button>
         <button class="vp-btn" id="vp-tablet" onclick="setViewport('tablet')" title="Tablet">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="18" r="1" fill="currentColor" stroke="none"/></svg>
         </button>
         <button class="vp-btn" id="vp-mobile" onclick="setViewport('mobile')" title="Mobile">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="18" r="1" fill="currentColor" stroke="none"/></svg>
         </button>
       </div>
-      <input class="url-bar" id="urlBar" value="your-site.netlify.app" readonly/>
+      <input class="url-bar" id="urlBar" value="your-site.netlify.app" readonly title="Site URL (read-only)"/>
       <div class="page-tabs" id="pageTabs"></div>
     </div>
-    <div id="previewArea" style="flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative">
+    <div id="previewArea">
       <div class="empty">
-        <div class="empty-glyph">✦</div>
+        <div class="empty-icon">✦</div>
         <h2>Build anything.</h2>
-        <p>Describe your idea — I'll generate a complete multi-page website with real design, working navigation, CSS & JS.</p>
+        <p>Describe your idea and I'll generate a complete website — real design, working navigation, CSS & JS included.</p>
         <div class="feat-grid">
-          <div class="feat-item"><div class="fi-title">Multi-page</div><div class="fi-desc">Full site with nav</div></div>
-          <div class="feat-item"><div class="fi-title">CSS + JS</div><div class="fi-desc">Separate files</div></div>
-          <div class="feat-item"><div class="fi-title">Iterate</div><div class="fi-desc">Refine any page</div></div>
-          <div class="feat-item"><div class="fi-title">Export</div><div class="fi-desc">ZIP or single HTML</div></div>
+          <div class="feat-card"><div class="feat-card-title">Multi-page</div><div class="feat-card-desc">Full site with nav</div></div>
+          <div class="feat-card"><div class="feat-card-title">CSS + JS</div><div class="feat-card-desc">Separate shared files</div></div>
+          <div class="feat-card"><div class="feat-card-title">Iterate</div><div class="feat-card-desc">Refine any page with AI</div></div>
+          <div class="feat-card"><div class="feat-card-title">Export</div><div class="feat-card-desc">ZIP or single HTML</div></div>
         </div>
       </div>
     </div>
@@ -373,9 +765,9 @@ pre{font-family:var(--font-mono);font-size:12px;color:var(--soft);white-space:pr
 </div>
 
 <div class="toast" id="toast"></div>
-
 <script>
-// ── STATE ─────────────────────────────────────────────────────────────────────
+// ── STATE ────────────────────────────────────────────────────────────────────
+const TOKEN_MAX = 100000;
 const S = {
   pages: {}, css: '', js: '',
   current: 'index.html',
@@ -388,14 +780,42 @@ const S = {
   modelLabel: 'gemini-2.5-flash',
   modelPip: 'green',
   viewport: 'desktop',
+  theme: 'dark',
+  prevPrompt: '',
 };
 
-// ── MODEL SWITCHER ────────────────────────────────────────────────────────────
-function toggleModelMenu() {
-  document.getElementById('modelMenu').classList.toggle('open');
+// ── THEME ────────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  S.theme = S.theme === 'dark' ? 'light' : 'dark';
+  applyTheme();
+  localStorage.setItem('WEBCRAFT_THEME', S.theme);
+}
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', S.theme);
+  document.getElementById('themeIcon').textContent = S.theme === 'dark' ? '☾' : '☀';
+}
+function loadTheme() {
+  const saved = localStorage.getItem('WEBCRAFT_THEME') || 'dark';
+  S.theme = saved;
+  applyTheme();
+}
+
+// ── MODEL MENU ───────────────────────────────────────────────────────────────
+function toggleModelMenu(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('modelDropdown');
+  const pill = document.getElementById('modelPill');
+  const isOpen = dd.classList.contains('open');
+  dd.classList.toggle('open', !isOpen);
+  pill.classList.toggle('open', !isOpen);
+  document.getElementById('modelChevron').textContent = isOpen ? '▾' : '▴';
 }
 document.addEventListener('click', e => {
-  if (!e.target.closest('.hdr-mid')) document.getElementById('modelMenu').classList.remove('open');
+  if (!e.target.closest('#modelPill') && !e.target.closest('#modelDropdown')) {
+    document.getElementById('modelDropdown').classList.remove('open');
+    document.getElementById('modelPill').classList.remove('open');
+    document.getElementById('modelChevron').textContent = '▾';
+  }
 });
 function selectModel(el) {
   S.provider = el.dataset.provider;
@@ -404,124 +824,113 @@ function selectModel(el) {
   S.modelPip = el.dataset.pip;
   document.getElementById('modelPillText').textContent = S.modelLabel;
   const pip = document.getElementById('modelPip');
-  pip.style.background = S.modelPip === 'green' ? 'var(--green)' : S.modelPip === 'blue' ? 'var(--accent2)' : 'var(--amber)';
-  document.querySelectorAll('.mm-item').forEach(i => i.classList.toggle('selected', i === el));
-  document.getElementById('modelMenu').classList.remove('open');
-  toast(`Model: ${S.modelLabel}`);
+  pip.className = 'pip pip-' + S.modelPip;
+  document.querySelectorAll('.md-item').forEach(i => i.classList.toggle('selected', i === el));
+  document.getElementById('modelDropdown').classList.remove('open');
+  document.getElementById('modelPill').classList.remove('open');
+  document.getElementById('modelChevron').textContent = '▾';
+  // Persist model preference
+  localStorage.setItem('WEBCRAFT_MODEL', JSON.stringify({ provider: S.provider, model: S.model, label: S.modelLabel, pip: S.modelPip }));
+  toast('Model: ' + S.modelLabel);
+}
+function loadModelPref() {
+  try {
+    const m = JSON.parse(localStorage.getItem('WEBCRAFT_MODEL') || 'null');
+    if (!m) return;
+    S.provider = m.provider; S.model = m.model; S.modelLabel = m.label; S.modelPip = m.pip;
+    document.getElementById('modelPillText').textContent = S.modelLabel;
+    document.getElementById('modelPip').className = 'pip pip-' + S.modelPip;
+    document.querySelectorAll('.md-item').forEach(i => {
+      i.classList.toggle('selected', i.dataset.model === S.model);
+    });
+  } catch(e) {}
 }
 
-// ── QUICK STARTS ──────────────────────────────────────────────────────────────
+// ── PROMPT ───────────────────────────────────────────────────────────────────
+function onPromptInput() {
+  const val = document.getElementById('promptArea').value;
+  document.getElementById('charCount').textContent = val.length + ' chars';
+  document.getElementById('undoRow').style.display = 'none';
+}
+function undoChip() {
+  document.getElementById('promptArea').value = S.prevPrompt;
+  document.getElementById('charCount').textContent = S.prevPrompt.length + ' chars';
+  document.getElementById('undoRow').style.display = 'none';
+}
+
+// ── CHIP SUGGESTIONS ─────────────────────────────────────────────────────────
 ['Developer portfolio','SaaS landing page','Restaurant & menu','Photography portfolio',
  'Tech startup','Personal blog','Law firm','E-commerce store',
  'Wedding invite','Music artist','Travel agency','Fitness studio'
 ].forEach(q => {
   const c = document.createElement('div');
   c.className = 'chip'; c.textContent = q;
-  c.onclick = () => document.getElementById('promptArea').value = q;
+  c.onclick = (e) => {
+    e.stopPropagation();
+    S.prevPrompt = document.getElementById('promptArea').value;
+    document.getElementById('promptArea').value = q;
+    document.getElementById('charCount').textContent = q.length + ' chars';
+    if (S.prevPrompt !== q) {
+      document.getElementById('undoRow').style.display = 'flex';
+    }
+  };
   document.getElementById('chips').appendChild(c);
 });
 
-// ── API CALL ──────────────────────────────────────────────────────────────────
-// The proxy at /api/ai normalizes all provider responses to:
-// { content: [{type:'text', text:'...'}], usage: {input_tokens, output_tokens} }
+// ── API ───────────────────────────────────────────────────────────────────────
 async function callAI(system, user, maxTokens = 8000) {
   const adminToken = localStorage.getItem('WEBCRAFT_ADMIN_TOKEN') || '';
   const headers = { 'Content-Type': 'application/json' };
   if (adminToken) headers['X-Admin-Token'] = adminToken;
-
   const res = await fetch('/api/ai', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      provider: S.provider,
-      model: S.model,
-      max_tokens: maxTokens,
-      system,
-      messages: [{ role: 'user', content: user }]
-    })
+    method: 'POST', headers,
+    body: JSON.stringify({ provider: S.provider, model: S.model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] })
   });
-
-  if (res.status === 429) {
-    const d = await res.json();
-    throw new Error(d.error || 'Rate limit reached. Try again later.');
-  }
-  if (!res.ok) {
-    const d = await res.json().catch(() => ({}));
-    throw new Error(d.error || `Request failed (${res.status})`);
-  }
-
+  if (res.status === 429) { const d = await res.json(); throw new Error(d.error || 'Rate limit — try again shortly.'); }
+  if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Request failed (' + res.status + ')'); }
   const data = await res.json();
   if (data.error) throw new Error(data.error);
-
-  // Track tokens — proxy normalizes usage across all providers
   if (data.usage) {
     S.totalTokens += (data.usage.input_tokens || 0) + (data.usage.output_tokens || 0);
     updateUsage();
   }
-
-  // Proxy always returns normalized { content: [{type:'text', text}] }
   return data.content?.find(b => b.type === 'text')?.text || '';
 }
-
 function updateUsage() {
   document.getElementById('usageSection').style.display = 'block';
-  const pct = Math.min((S.totalTokens / 100000) * 100, 100);
-  document.getElementById('tokenBar').style.width = pct + '%';
+  const pct = Math.min((S.totalTokens / TOKEN_MAX) * 100, 100);
+  const bar = document.getElementById('tokenBar');
+  bar.style.width = pct + '%';
+  bar.className = 'token-bar-fill' + (pct > 85 ? ' danger' : pct > 65 ? ' warn' : '');
   document.getElementById('tokenCount').textContent = S.totalTokens.toLocaleString();
 }
 
-// ── GENERATE ──────────────────────────────────────────────────────────────────
+// ── GENERATE ─────────────────────────────────────────────────────────────────
 async function generateSite() {
   const prompt = document.getElementById('promptArea').value.trim();
-  if (!prompt) return;
+  if (!prompt) { toast('Enter an idea first'); return; }
   S.desc = prompt;
   setLoading(true, 'Architecting your site');
   setBtnState(true);
   try {
-    const sys = `You are a web designer. Generate a single self-contained HTML page.
-
-CRITICAL: Respond ONLY with valid JSON. No markdown, no backticks, no explanation.
-
-Format:
-{
-  "pages": {
-    "index.html": "<complete html here>"
-  },
-  "shared.css": "",
-  "shared.js": ""
-}
-
-Rules:
-- ONE page only: index.html
-- ALL CSS and JS must be INLINE inside the HTML (no external files)
-- HTML can be up to 14000 characters - include ALL requested sections fully with real content
-- Modern design: gradient hero, features grid, CTA section, footer
-- Real content specific to the site type - NO lorem ipsum
-- Use CSS variables and flexbox/grid
-- Add scroll fade-in animations (IntersectionObserver), sticky navbar, hover effects, mobile responsive`;
-
-        const raw = await callAI(sys, `Create a website for: ${prompt}`, 8000);
+    const sys = 'You are a web designer. Generate a single self-contained HTML page. CRITICAL: Respond ONLY with valid JSON. No markdown, no backticks, no explanation. Format: { "pages": { "index.html": "<complete html here>" }, "shared.css": "", "shared.js": "" } Rules: ONE page only: index.html. ALL CSS and JS must be INLINE inside the HTML (no external files). HTML can be up to 14000 characters. Include ALL requested sections fully with real content. Modern design: gradient hero, features grid, CTA section, footer. Real content specific to the site type. NO lorem ipsum. Use CSS variables and flexbox/grid. Add scroll fade-in animations (IntersectionObserver), sticky navbar, hover effects, mobile responsive.';
+    const raw = await callAI(sys, 'Create a website for: ' + prompt, 8000);
     const clean = raw.trim().replace(/^```json\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
     const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
-    if (s === -1 || e === -1) throw new Error('Invalid response — try again');
+    if (s === -1 || e === -1) throw new Error('Invalid response — try again or switch to a more capable model.');
     const data = JSON.parse(clean.slice(s, e + 1));
-
     S.pages = data.pages || {};
     S.css = data['shared.css'] || '';
     S.js = data['shared.js'] || '';
-
-    if (!S.pages['index.html'] && Object.keys(S.pages).length > 0) {
-      S.pages['index.html'] = S.pages[Object.keys(S.pages)[0]];
-    }
+    if (!S.pages['index.html'] && Object.keys(S.pages).length > 0) S.pages['index.html'] = S.pages[Object.keys(S.pages)[0]];
     S.current = 'index.html';
     updateHistory(prompt);
-
     renderAll();
-    toast(`✦ ${Object.keys(S.pages).length} pages generated`);
+    toast('✦ Website generated');
   } catch(err) {
-    const msg = err.message?.includes('JSON') || err.message?.includes('position')
-      ? 'Generation incomplete — try a more capable model (Gemini Pro / Claude Sonnet) or shorten prompt — response was cut off. Try a simpler description.'
-      : 'Error: ' + err.message;
+    const msg = (err.message?.includes('JSON') || err.message?.includes('position'))
+      ? 'Response was cut off — try Gemini Pro or Claude Sonnet, or simplify your prompt.'
+      : err.message;
     toast(msg);
     setLoading(false);
   }
@@ -531,30 +940,27 @@ Rules:
 // ── REFINE ────────────────────────────────────────────────────────────────────
 async function refinePage() {
   const p = document.getElementById('refineInput').value.trim();
-  if (!p || !S.current || !S.pages[S.current]) return;
+  if (!p || !S.current || !S.pages[S.current]) { toast('Enter a refinement instruction'); return; }
   const btn = document.getElementById('refineBtn');
-  btn.disabled = true; btn.textContent = 'Applying...';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="gen-spinner"></span> Applying…';
   setLoading(true, 'Refining page');
   try {
-    const sys = `You are an expert web developer. Return ONLY a JSON object (no markdown, no explanation):
-{"html":"updated complete html","shared.css":"updated css","shared.js":"updated js"}
-Preserve navigation, all internal links, and overall design language.`;
-    const raw = await callAI(sys, `Page: ${S.current}\nHTML:\n${S.pages[S.current]}\n\nCSS:\n${S.css}\n\nJS:\n${S.js}\n\nChange request: ${p}`, 6000);
+    const sys = 'You are an expert web developer. Return ONLY a JSON object (no markdown, no explanation): {"html":"updated complete html","shared.css":"updated css","shared.js":"updated js"} Preserve navigation, all internal links, and overall design language.';
+    const raw = await callAI(sys, 'Page: ' + S.current + '\nHTML:\n' + S.pages[S.current] + '\n\nCSS:\n' + S.css + '\n\nJS:\n' + S.js + '\n\nChange request: ' + p, 6000);
     const clean = raw.trim().replace(/^```json\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
     const s = clean.indexOf('{'), e = clean.lastIndexOf('}');
     const d = JSON.parse(clean.slice(s, e + 1));
     if (d.html) S.pages[S.current] = d.html;
     if (d['shared.css']) S.css = d['shared.css'];
     if (d['shared.js']) S.js = d['shared.js'];
-    updateHistory(`Refined ${S.current}: ${p}`);
+    updateHistory('Refined ' + S.current + ': ' + p);
     renderPreview(); renderFileTree(); renderHist();
     toast('✓ Changes applied');
     document.getElementById('refineInput').value = '';
-  } catch(err) {
-    toast('Error: ' + err.message);
-    setLoading(false); // FIX: ensure overlay is cleared on error in refine
-  }
-  btn.disabled = false; btn.textContent = 'apply changes ↗';
+  } catch(err) { toast('Error: ' + err.message); setLoading(false); }
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Apply changes';
 }
 
 // ── ADD PAGE ──────────────────────────────────────────────────────────────────
@@ -565,102 +971,71 @@ async function addPage() {
   if (S.pages[slug]) { toast('Page already exists'); return; }
   setLoading(true, 'Generating page');
   try {
-    const sys = `Generate a single new HTML page. Return ONLY the complete HTML starting with <!DOCTYPE html>. No JSON, no markdown. Link shared.css and shared.js. Match the existing site's design and navigation exactly.`;
-    const html = await callAI(sys, `Site: ${S.desc}\nExisting pages: ${Object.keys(S.pages).join(', ')}\nCSS:\n${S.css}\nJS:\n${S.js}\nCreate: "${name}" page (${slug})`, 4000);
+    const sys = 'Generate a single new HTML page. Return ONLY the complete HTML starting with <!DOCTYPE html>. No JSON, no markdown. Link shared.css and shared.js. Match the existing site design and navigation exactly.';
+    const html = await callAI(sys, 'Site: ' + S.desc + '\nExisting pages: ' + Object.keys(S.pages).join(', ') + '\nCSS:\n' + S.css + '\nJS:\n' + S.js + '\nCreate: "' + name + '" page (' + slug + ')', 4000);
     const clean = html.trim().replace(/^```html\n?/i,'').replace(/^```\n?/,'').replace(/\n?```$/,'').trim();
-    S.pages[slug] = clean;
-    S.current = slug;
-    updateHistory(`Added page: ${slug}`);
-    renderAll(); // renderAll calls renderPreview which clears loading via iframe timeout
-    toast(`✦ Page "${slug}" added`);
-  } catch(err) {
-    toast('Error: ' + err.message);
-    setLoading(false);
-  }
+    S.pages[slug] = clean; S.current = slug;
+    updateHistory('Added page: ' + slug);
+    renderAll();
+    toast('✦ Page "' + slug + '" added');
+  } catch(err) { toast('Error: ' + err.message); setLoading(false); }
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function renderAll() {
-  renderPgList(); renderTabs(); renderFileTree(); renderPreview();
-  showSections(true);
+  renderPgList(); renderTabs(); renderFileTree(); renderPreview(); showSections(true);
   const slug = S.desc.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'').slice(0,22) || 'my-site';
   document.getElementById('urlBar').value = slug + '.netlify.app';
   document.getElementById('siteNameInput').value = slug;
   document.getElementById('deployHdrBtn').style.display = 'block';
   renderHist();
 }
-
 function renderPgList() {
   const multi = Object.keys(S.pages).length > 1;
   document.getElementById('pgList').innerHTML = Object.keys(S.pages).map(pg => `
     <div class="pg-item${pg===S.current?' active':''}" onclick="switchPage('${pg}')">
-      <div class="pg-left"><span class="pg-dot"></span><span class="pg-fname">${pg}</span></div>
-      <div style="display:flex;gap:4px">
-        <button class="pg-del" onclick="dupPage(event,'${pg}')" title="Duplicate" style="opacity:0">⎘</button>
-        ${multi ? `<button class="pg-del" onclick="delPage(event,'${pg}')" title="Delete">✕</button>` : ''}
+      <div class="pg-left"><span class="pg-dot"></span><span class="pg-name">${pg}</span></div>
+      <div class="pg-actions">
+        <button class="pg-action-btn" onclick="dupPage(event,'${pg}')" title="Duplicate">⎘</button>
+        ${multi ? `<button class="pg-action-btn del" onclick="delPage(event,'${pg}')" title="Delete">✕</button>` : ''}
       </div>
     </div>`).join('');
 }
-
 function renderTabs() {
   document.getElementById('pageTabs').innerHTML = Object.keys(S.pages).map(pg =>
     `<div class="ptab${pg===S.current?' active':''}" onclick="switchPage('${pg}')">${pg}</div>`
   ).join('');
 }
-
 function renderFileTree() {
   const files = [...Object.keys(S.pages)];
   if (S.css) files.push('shared.css');
   if (S.js) files.push('shared.js');
   document.getElementById('fileTree').innerHTML = files.map(f => {
     const ext = f.split('.').pop();
-    return `<div class="fe fe-${ext}${f===S.current?' active':''}" onclick="viewFile('${f}')">
-      <span class="fe-dot"></span>${f}</div>`;
+    return `<div class="ft-item ft-${ext}${f===S.current?' active':''}" onclick="viewFile('${f}')"><span class="ft-dot"></span>${f}</div>`;
   }).join('');
 }
-
 function renderPreview() {
   const area = document.getElementById('previewArea');
-
   if (S.view === 'code') {
-    const content = S.current === 'shared.css' ? S.css
-      : S.current === 'shared.js' ? S.js
-      : S.pages[S.current] || '';
+    const content = S.current === 'shared.css' ? S.css : S.current === 'shared.js' ? S.js : S.pages[S.current] || '';
     area.innerHTML = '<div class="code-view"><pre id="codeEl"></pre></div>';
     document.getElementById('codeEl').textContent = content;
-    setLoading(false); // FIX: always clear loading in code view
-    return;
+    setLoading(false); return;
   }
-
   area.innerHTML = `<div id="frameArea" class="${S.viewport}" style="overflow:auto;background:#fff;position:relative"></div>`;
   const wrap = document.getElementById('frameArea');
   const iframe = document.createElement('iframe');
-  // FIX: added allow-popups and allow-modals
   iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals';
   iframe.style.cssText = 'width:100%;border:none;display:block';
   wrap.appendChild(iframe);
-
-  // Inline CSS and JS into the HTML so the iframe is self-contained
   let html = S.pages[S.current] || '';
   if (S.css) html = html.replace('</head>', `<style>${S.css}</style></head>`);
-  if (S.js) {
-    const scriptTag = `<script>${S.js}<\/script>`;
-    if (html.includes('</body>')) {
-      html = html.replace('</body>', `${scriptTag}</body>`);
-    } else {
-      html += scriptTag;
-    }
-  }
-
-  iframe.contentDocument.open();
-  iframe.contentDocument.write(html);
-  iframe.contentDocument.close();
-
-  // Intercept internal page navigation
+  if (S.js) { const st = `<script>${S.js}<\/script>`; html = html.includes('</body>') ? html.replace('</body>', st+'</body>') : html+st; }
+  iframe.contentDocument.open(); iframe.contentDocument.write(html); iframe.contentDocument.close();
   try {
     iframe.contentDocument.addEventListener('click', e => {
-      const a = e.target.closest('a');
-      if (!a) return;
+      const a = e.target.closest('a'); if (!a) return;
       const href = a.getAttribute('href');
       if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('mailto')) {
         const target = href.split('?')[0].split('#')[0];
@@ -668,286 +1043,232 @@ function renderPreview() {
       }
     });
   } catch(_) {}
-
   setTimeout(() => {
-    try {
-      const h = iframe.contentDocument.body?.scrollHeight;
-      if (h && h > 400) iframe.style.height = (h + 20) + 'px';
-    } catch(_) {}
+    try { const h = iframe.contentDocument.body?.scrollHeight; if (h && h > 400) iframe.style.height = (h+20)+'px'; } catch(_) {}
     setLoading(false);
   }, 700);
 }
-
 function renderHist() {
   const list = document.getElementById('histList');
+  const clearBtn = document.getElementById('clearHistBtn');
   if (!S.history.length) {
-    list.innerHTML = '<div style="font-size:11px;font-family:var(--font-mono);color:var(--dim);padding:4px 0">No sites yet</div>';
-    return;
+    list.innerHTML = '<div style="font-size:11px;font-family:var(--font-mono);color:var(--muted);padding:4px 2px">No sites yet</div>';
+    clearBtn.style.display = 'none'; return;
   }
-  list.innerHTML = S.history.map((h, i) =>
-    `<div class="hi${i===0?' active':''}" onclick="loadHist(${i})">✦ ${h.prompt}</div>`
-  ).join('');
+  clearBtn.style.display = 'block';
+  list.innerHTML = S.history.map((h, i) => {
+    const ago = getRelativeTime(h.ts);
+    return `<div class="hi${i===0?' active':''}" onclick="loadHist(${i})"><span class="hi-icon">✦</span><span class="hi-label">${h.prompt}</span><span class="hi-time">${ago}</span></div>`;
+  }).join('');
+}
+function getRelativeTime(ts) {
+  if (!ts) return '';
+  const diff = Date.now() - ts;
+  if (diff < 60000) return 'now';
+  if (diff < 3600000) return Math.floor(diff/60000) + 'm';
+  if (diff < 86400000) return Math.floor(diff/3600000) + 'h';
+  return Math.floor(diff/86400000) + 'd';
 }
 
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
 function switchPage(pg) {
-  S.current = pg;
-  renderPgList(); renderTabs(); renderFileTree();
-  setLoading(true, 'Loading');
-  renderPreview();
+  S.current = pg; renderPgList(); renderTabs(); renderFileTree(); setLoading(true,'Loading'); renderPreview();
 }
-
 function viewFile(f) {
   S.current = f;
-  if (f === 'shared.css' || f === 'shared.js') {
-    S.view = 'code';
-    document.getElementById('viewToggle').textContent = '⬡ preview';
-  }
+  if (f === 'shared.css' || f === 'shared.js') { S.view = 'code'; updateViewToggle(); }
   renderFileTree(); renderPreview();
 }
-
 function delPage(e, pg) {
   e.stopPropagation();
-  if (!confirm(`Delete ${pg}?`)) return;
+  if (!confirm('Delete ' + pg + '?')) return;
   delete S.pages[pg];
   if (S.current === pg) S.current = Object.keys(S.pages)[0] || '';
-  updateHistory(`Deleted page: ${pg}`);
-  renderAll();
+  updateHistory('Deleted page: ' + pg); renderAll();
 }
-
+function dupPage(e, pg) {
+  e.stopPropagation();
+  const name = pg.replace('.html','') + '-copy.html';
+  S.pages[name] = S.pages[pg];
+  updateHistory('Duplicated ' + pg); renderAll();
+  toast('✓ Duplicated as ' + name);
+}
 function toggleView() {
   S.view = S.view === 'preview' ? 'code' : 'preview';
-  document.getElementById('viewToggle').textContent = S.view === 'code' ? '⬡ preview' : '{ } code';
-  renderPreview(); renderFileTree();
+  updateViewToggle(); renderPreview(); renderFileTree();
 }
-
+function updateViewToggle() {
+  const btn = document.getElementById('viewToggle');
+  if (S.view === 'code') {
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> preview';
+  } else {
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> code';
+  }
+}
 function loadHist(i) {
   const h = S.history[i];
   S.pages = JSON.parse(JSON.stringify(h.pages));
   S.css = h.css; S.js = h.js; S.desc = h.desc || '';
-  S.current = 'index.html';
-  renderAll();
+  S.current = 'index.html'; renderAll();
   document.querySelectorAll('.hi').forEach((el, j) => el.classList.toggle('active', j === i));
 }
-
+function clearHistory() {
+  if (!confirm('Clear all history?')) return;
+  S.history = []; saveToStorage(); renderHist(); toast('History cleared');
+}
 function showSections(on) {
   ['pagesSection','filesSection','refineSection','exportSection','deploySection']
     .forEach(id => document.getElementById(id).style.display = on ? 'block' : 'none');
 }
-
 function scrollDeploy() {
   document.getElementById('deploySection').scrollIntoView({ behavior: 'smooth' });
 }
-
-function updateHistory(label) {
-  const item = {
-    prompt: label.length > 46 ? label.slice(0,46)+'…' : label,
-    pages: JSON.parse(JSON.stringify(S.pages)),
-    css: S.css,
-    js: S.js,
-    desc: S.desc
-  };
-  S.history.unshift(item);
-  if (S.history.length > 12) S.history.pop();
-  saveToStorage();
-}
-
 function setViewport(vp) {
   S.viewport = vp;
   document.querySelectorAll('.vp-btn').forEach(b => b.classList.toggle('active', b.id === 'vp-' + vp));
   const frame = document.getElementById('frameArea');
   if (frame) {
     frame.className = vp;
-    // Set explicit height if mobile/tablet to ensure scrollbars inside frame
     frame.style.flex = vp === 'desktop' ? '1' : 'none';
-    frame.style.height = vp === 'desktop' ? 'auto' : 'calc(100% - 3rem)';
+    frame.style.height = vp === 'desktop' ? 'auto' : 'calc(100% - 32px)';
   }
 }
 
-function dupPage(e, pg) {
-  e.stopPropagation();
-  const name = pg.replace('.html','') + '-copy.html';
-  S.pages[name] = S.pages[pg];
-  updateHistory(`Duplicated ${pg}`);
-  renderAll();
-  toast(`✓ Duplicated as ${name}`);
+// ── HISTORY PERSISTENCE ───────────────────────────────────────────────────────
+function updateHistory(label) {
+  const item = {
+    prompt: label.length > 46 ? label.slice(0,46)+'…' : label,
+    pages: JSON.parse(JSON.stringify(S.pages)),
+    css: S.css, js: S.js, desc: S.desc,
+    ts: Date.now()
+  };
+  S.history.unshift(item);
+  if (S.history.length > 12) S.history.pop();
+  saveToStorage();
 }
-
 function saveToStorage() {
   try {
-    const data = {
-      pages: S.pages, css: S.css, js: S.js,
-      desc: S.desc, history: S.history,
-      totalTokens: S.totalTokens
-    };
-    localStorage.setItem('WEBCRAFT_PROJECT', JSON.stringify(data));
+    localStorage.setItem('WEBCRAFT_PROJECT', JSON.stringify({ pages: S.pages, css: S.css, js: S.js, desc: S.desc, history: S.history, totalTokens: S.totalTokens }));
   } catch(e) {}
 }
-
 function loadFromStorage() {
   try {
     const raw = localStorage.getItem('WEBCRAFT_PROJECT');
     if (!raw) return;
     const data = JSON.parse(raw);
-    S.pages = data.pages || {};
-    S.css = data.css || '';
-    S.js = data.js || '';
-    S.desc = data.desc || '';
-    S.history = data.history || [];
-    S.totalTokens = data.totalTokens || 0;
-    if (Object.keys(S.pages).length) {
-      S.current = 'index.html';
-      renderAll();
-      updateUsage();
-    }
+    S.pages = data.pages || {}; S.css = data.css || ''; S.js = data.js || '';
+    S.desc = data.desc || ''; S.history = data.history || []; S.totalTokens = data.totalTokens || 0;
+    if (Object.keys(S.pages).length) { S.current = 'index.html'; renderAll(); updateUsage(); }
   } catch(e) {}
 }
-
-window.onload = loadFromStorage;
 
 // ── EXPORT ────────────────────────────────────────────────────────────────────
 async function downloadZip() {
   if (!Object.keys(S.pages).length) return;
-  if (typeof JSZip === 'undefined') { toast('JSZip not loaded yet'); return; }
+  if (typeof JSZip === 'undefined') { toast('JSZip loading, try again'); return; }
   const zip = new JSZip();
   Object.entries(S.pages).forEach(([n, h]) => zip.file(n, h));
   if (S.css) zip.file('shared.css', S.css);
   if (S.js) zip.file('shared.js', S.js);
   const blob = await zip.generateAsync({ type: 'blob' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = (S.desc.toLowerCase().replace(/\s+/g,'-').slice(0,20) || 'webcraft') + '.zip';
-  a.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = (S.desc.toLowerCase().replace(/\s+/g,'-').slice(0,20)||'webcraft')+'.zip'; a.click();
   toast('✓ ZIP downloaded');
 }
-
 function downloadPage() {
   if (!S.current || !S.pages[S.current]) return;
   let html = S.pages[S.current];
   if (S.css) html = html.replace('</head>', `<style>${S.css}</style></head>`);
-  if (S.js) {
-    const scriptTag = `<script>${S.js}<\/script>`;
-    if (html.includes('</body>')) html = html.replace('</body>', `${scriptTag}</body>`);
-    else html += scriptTag;
-  }
+  if (S.js) { const st = `<script>${S.js}<\/script>`; html = html.includes('</body>') ? html.replace('</body>', st+'</body>') : html+st; }
   const blob = new Blob([html], { type: 'text/html' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = S.current; a.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = S.current; a.click();
   toast('✓ Downloaded ' + S.current);
 }
 
 // ── DEPLOY ────────────────────────────────────────────────────────────────────
-// FIX: Deploy now calls the Netlify API directly via the serverless proxy
-// instead of postMessage (which was firing into the void since we're not embedded).
 async function doNetlifyDeploy() {
   if (!Object.keys(S.pages).length) { toast('Generate a site first'); return; }
   const btn = document.getElementById('deployBtn');
-  btn.disabled = true; btn.textContent = 'Deploying...';
-  document.getElementById('dPip').className = 'pip loading';
-  document.getElementById('dText').textContent = 'deploying...';
-
+  btn.disabled = true; btn.textContent = 'Deploying…';
+  document.getElementById('dPip').style.background = 'var(--amber)';
+  document.getElementById('dText').textContent = 'deploying…';
   try {
     if (typeof JSZip === 'undefined') throw new Error('JSZip not loaded');
-
     const zip = new JSZip();
     Object.entries(S.pages).forEach(([n, h]) => zip.file(n, h));
     if (S.css) zip.file('shared.css', S.css);
     if (S.js) zip.file('shared.js', S.js);
     const zipBlob = await zip.generateAsync({ type: 'blob' });
-
-    // Call our serverless function to do the Netlify deploy
     const adminToken = localStorage.getItem('WEBCRAFT_ADMIN_TOKEN') || '';
     const formData = new FormData();
     formData.append('zip', zipBlob, 'site.zip');
-
     const siteName = document.getElementById('siteNameInput').value.trim();
     if (siteName) formData.append('siteName', siteName);
-
-    const headers = {};
-    if (adminToken) headers['X-Admin-Token'] = adminToken;
-
+    const headers = {}; if (adminToken) headers['X-Admin-Token'] = adminToken;
     const res = await fetch('/api/deploy', { method: 'POST', headers, body: formData });
     const data = await res.json();
-
-    if (!res.ok || data.error) throw new Error(data.error || `Deploy failed (${res.status})`);
-
+    if (!res.ok || data.error) throw new Error(data.error || 'Deploy failed (' + res.status + ')');
     const url = data.url || data.deploy_url || data.ssl_url;
-    document.getElementById('dPip').className = 'pip live';
+    document.getElementById('dPip').style.cssText = 'background:var(--green);box-shadow:0 0 0 2px var(--green-s)';
     document.getElementById('dText').textContent = 'live';
     if (url) {
       document.getElementById('urlBar').value = url.replace('https://','');
       const out = document.getElementById('deployOut');
       out.style.display = 'block';
-      out.innerHTML = `✓ Live: <a href="${url}" target="_blank">${url}</a>`;
+      out.innerHTML = '✓ Live: <a href="' + url + '" target="_blank">' + url + '</a>';
     }
     toast('✓ Deployed live!');
   } catch(err) {
-    toast('Error: ' + err.message);
-    document.getElementById('dPip').className = 'pip';
+    toast('Deploy error: ' + err.message);
+    document.getElementById('dPip').style.background = 'var(--red)';
     document.getElementById('dText').textContent = 'failed';
   }
-
-  btn.disabled = false; btn.textContent = 'deploy live ↗';
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Deploy live';
 }
 
 // ── LOADING ───────────────────────────────────────────────────────────────────
-const LOADING_MSGS = [
-  'Architecting your site',
-  'Designing the layout',
-  'Writing the code',
-  'Polishing the details',
-  'Almost ready',
-];
+const LOADING_MSGS = ['Architecting your site','Designing the layout','Writing the code','Polishing the details','Almost ready'];
 let loadingInterval;
-
 function setLoading(on, msg = 'Building') {
   const area = document.getElementById('previewArea');
   const ex = area.querySelector('.loading-ov');
   if (on) {
-    if (ex) { ex.querySelector('.loading-label').textContent = msg + '...'; return; }
-    const div = document.createElement('div');
-    div.className = 'loading-ov';
-    div.innerHTML = `
-      <div class="spinner"></div>
-      <div class="loading-label">${msg}...</div>
-      <div class="loading-progress">
-        ${LOADING_MSGS.map((_,i) => `<div class="loading-step" id="ls${i}"></div>`).join('')}
-      </div>`;
+    if (ex) { ex.querySelector('.loading-msg').textContent = msg + '…'; return; }
+    const div = document.createElement('div'); div.className = 'loading-ov';
+    div.innerHTML = `<div class="spinner"></div><div class="loading-msg">${msg}…</div><div class="loading-steps">${LOADING_MSGS.map((_,i)=>`<div class="lstep" id="ls${i}"></div>`).join('')}</div>`;
     area.appendChild(div);
-    let step = 0;
-    clearInterval(loadingInterval);
+    let step = 0; clearInterval(loadingInterval);
     loadingInterval = setInterval(() => {
-      if (step > 0) document.getElementById(`ls${step-1}`)?.classList.replace('active','done');
-      if (step < LOADING_MSGS.length) {
-        div.querySelector('.loading-label').textContent = LOADING_MSGS[step] + '...';
-        document.getElementById(`ls${step}`)?.classList.add('active');
-        step++;
-      }
+      if (step > 0) document.getElementById('ls'+(step-1))?.classList.replace('active','done');
+      if (step < LOADING_MSGS.length) { div.querySelector('.loading-msg').textContent = LOADING_MSGS[step]+'…'; document.getElementById('ls'+step)?.classList.add('active'); step++; }
     }, 1200);
-  } else {
-    clearInterval(loadingInterval);
-    if (ex) ex.remove();
-  }
+  } else { clearInterval(loadingInterval); ex?.remove(); }
 }
-
 function setBtnState(loading) {
-  const btn = document.getElementById('genBtn');
-  btn.disabled = loading;
-  document.getElementById('genBtnIcon').textContent = loading ? '' : '✦';
-  document.getElementById('genBtnText').textContent = loading ? 'Generating…' : 'Generate website';
+  const btn = document.getElementById('genBtn'); btn.disabled = loading;
   if (loading) {
-    btn.insertAdjacentHTML('afterbegin','<span class="spinner" style="width:14px;height:14px;border-width:1.5px;margin-right:6px"></span>');
+    btn.innerHTML = `<span class="gen-spinner"></span><span>Generating…</span>`;
   } else {
-    btn.querySelector('.spinner')?.remove();
+    btn.innerHTML = `<span id="genBtnIcon">✦</span><span id="genBtnText">Generate website</span>`;
   }
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
 function toast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
+  const t = document.getElementById('toast'); t.textContent = msg;
+  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2800);
 }
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+window.onload = () => {
+  loadTheme();
+  loadModelPref();
+  loadFromStorage();
+  // Init char count
+  const prompt = document.getElementById('promptArea');
+  document.getElementById('charCount').textContent = prompt.value.length + ' chars';
+};
 </script>
 </body>
 </html>
