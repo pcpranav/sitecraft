@@ -4,6 +4,7 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  included_files = ["node_modules/@supabase/**"]
 
 [[redirects]]
   from = "/api/ai"
@@ -13,6 +14,16 @@
 [[redirects]]
   from = "/api/deploy"
   to = "/.netlify/functions/deploy"
+  status = 200
+
+[[redirects]]
+  from = "/api/projects/*"
+  to = "/.netlify/functions/projects"
+  status = 200
+
+[[redirects]]
+  from = "/api/projects"
+  to = "/.netlify/functions/projects"
   status = 200
 
 [[headers]]

@@ -1,31 +1,117 @@
 // netlify/functions/claude-proxy.mjs
 // Unified AI proxy for Anthropic, Gemini, and OpenAI
+// Now with Supabase-backed persistent rate limiting + JWT auth
 
-const RATE_LIMIT = new Map(); // ip -> { count, resetAt }
-const RATE_LIMIT_MAX = 10;
+import { createClient } from '@supabase/supabase-js';
+
+const RATE_LIMIT_MAX = 30;          // requests per window (increased from 10)
 const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
 
-function checkRateLimit(ip, adminToken) {
+// In-memory fallback if Supabase is not configured
+const MEM_RATE_LIMIT = new Map();
+
+let _supabase = null;
+function getSupabase() {
+  if (_supabase) return _supabase;
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !key) return null;
+  _supabase = createClient(url, key);
+  return _supabase;
+}
+
+async function getUserFromToken(req) {
+  const auth = req.headers.get('authorization');
+  if (!auth?.startsWith('Bearer ')) return null;
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  const { data: { user }, error } = await supabase.auth.getUser(auth.slice(7));
+  if (error || !user) return null;
+  return user;
+}
+
+async function checkRateLimit(identifier, isAuthed, supabase) {
+  // Admin token bypass
   const envAdmin = process.env.ADMIN_TOKEN;
-  if (envAdmin && adminToken === envAdmin) return null; // bypass
+  const adminToken = identifier.adminToken;
+  if (envAdmin && adminToken === envAdmin) return null;
+
+  // Authenticated users: use Supabase persistent rate limit
+  if (isAuthed && supabase && identifier.userId) {
+    const userId = identifier.userId;
+    const now = new Date();
+    const { data, error } = await supabase
+      .from('rate_limits')
+      .select('count, window_start')
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      // DB error — fall through to memory rate limit
+      console.error('Rate limit DB error:', error);
+    } else {
+      const windowStart = data?.window_start ? new Date(data.window_start) : null;
+      const windowExpired = !windowStart || (now - windowStart) > RATE_LIMIT_WINDOW;
+
+      if (windowExpired) {
+        // Reset window
+        await supabase.from('rate_limits').upsert({
+          user_id: userId,
+          count: 1,
+          window_start: now.toISOString(),
+        });
+        return null;
+      }
+
+      if (data.count >= RATE_LIMIT_MAX) {
+        const resetAt = new Date(windowStart.getTime() + RATE_LIMIT_WINDOW);
+        const mins = Math.ceil((resetAt - now) / 60000);
+        return `Rate limit reached (${RATE_LIMIT_MAX} req/hr). Resets in ~${mins}m. Sign up for higher limits.`;
+      }
+
+      // Increment
+      await supabase.from('rate_limits').update({ count: data.count + 1 }).eq('user_id', userId);
+      return null;
+    }
+  }
+
+  // Fallback: in-memory rate limit by IP (for unauthenticated users or when Supabase is down)
+  const ip = identifier.ip;
   const now = Date.now();
-  const entry = RATE_LIMIT.get(ip) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW };
+  const entry = MEM_RATE_LIMIT.get(ip) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW };
   if (now > entry.resetAt) {
     entry.count = 0;
     entry.resetAt = now + RATE_LIMIT_WINDOW;
   }
-  if (entry.count >= RATE_LIMIT_MAX) {
+  const limit = isAuthed ? RATE_LIMIT_MAX : 10; // unauthenticated gets lower limit
+  if (entry.count >= limit) {
     const mins = Math.ceil((entry.resetAt - now) / 60000);
-    return `Rate limit reached (${RATE_LIMIT_MAX} req/hr). Resets in ~${mins}m.`;
+    return `Rate limit reached (${limit} req/hr). ${isAuthed ? '' : 'Sign in for higher limits. '}Resets in ~${mins}m.`;
   }
   entry.count++;
-  RATE_LIMIT.set(ip, entry);
+  MEM_RATE_LIMIT.set(ip, entry);
   return null;
+}
+
+async function logGeneration(supabase, user, body, usage) {
+  if (!supabase || !user) return;
+  try {
+    await supabase.from('generations').insert({
+      user_id: user.id,
+      prompt: (body.messages?.[0]?.content || '').slice(0, 500),
+      provider: body.provider || 'unknown',
+      model: body.model || 'unknown',
+      input_tokens: usage?.input_tokens || 0,
+      output_tokens: usage?.output_tokens || 0,
+    });
+  } catch (e) {
+    console.error('Failed to log generation:', e);
+  }
 }
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Admin-Token',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Token',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
@@ -39,7 +125,14 @@ export default async (req, context) => {
 
   const ip = context.ip || req.headers.get('x-forwarded-for') || 'unknown';
   const adminToken = req.headers.get('x-admin-token') || '';
-  const rateLimitErr = checkRateLimit(ip, adminToken);
+  const supabase = getSupabase();
+  const user = await getUserFromToken(req);
+
+  const rateLimitErr = await checkRateLimit(
+    { ip, adminToken, userId: user?.id },
+    !!user,
+    supabase
+  );
   if (rateLimitErr) {
     return new Response(JSON.stringify({ error: rateLimitErr }), {
       status: 429,
@@ -70,6 +163,10 @@ export default async (req, context) => {
     } else {
       throw new Error(`Unknown provider: ${provider}`);
     }
+
+    // Log generation for authenticated users
+    await logGeneration(supabase, user, body, result.usage);
+
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: { ...CORS, 'Content-Type': 'application/json' },
@@ -97,7 +194,7 @@ async function callAnthropic({ model, system, messages, max_tokens }) {
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': key,
-      'anthropic-version': '2023-06-01',
+      'anthropic-version': '2024-10-22',
     },
     body: JSON.stringify({ model, system, messages, max_tokens }),
   });
