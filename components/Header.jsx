@@ -8,9 +8,10 @@ import JSZip from 'jszip';
 export default function Header() {
   const {
     user, supabaseClient, theme, setTheme, view, setView,
-    isAuthOpen, setIsAuthOpen, pages, setPages, css, setCss, js, setJs,
+    isAuthOpen, setIsAuthOpen, pages, setPages, setCss, setJs,
     setDesc, setHistory, setProjectId,
-    sidebarOpen, setSidebarOpen, setCurrentFile
+    sidebarOpen, setSidebarOpen, setCurrentFile,
+    currentHtml, setCurrentHtml, setChatMessages, setFeatures, setImageUrls
   } = useAppContext();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -85,6 +86,10 @@ export default function Header() {
       setDesc('');
       setHistory([]);
       setProjectId(null);
+      setCurrentHtml('');
+      setChatMessages([]);
+      setFeatures([]);
+      setImageUrls([]);
       sessionStorage.removeItem('WEBCRAFT_PROJECT');
     } catch (e) {
       console.error('Sign out failed:', e);
@@ -118,21 +123,13 @@ export default function Header() {
             setIsAuthOpen(true);
             return;
           }
-          if (!Object.keys(pages).length) {
-            alert('No pages to export. Generate a website first.');
+          const exportHtml = currentHtml || Object.values(pages)[0];
+          if (!exportHtml) {
+            alert('No website to export. Generate one first.');
             return;
           }
           const zip = new JSZip();
-          Object.entries(pages).forEach(([filename, content]) => {
-            const isFullDoc = content.trimStart().startsWith('<!DOCTYPE') || content.trimStart().startsWith('<html');
-            if (isFullDoc) {
-              zip.file(filename, content);
-            } else {
-              zip.file(filename, `<!DOCTYPE html>\n<html>\n<head>\n<link rel="stylesheet" href="style.css">\n</head>\n<body>\n${content}\n<script src="script.js"></script>\n</body>\n</html>`);
-            }
-          });
-          if (css) zip.file('style.css', css);
-          if (js) zip.file('script.js', js);
+          zip.file('index.html', exportHtml);
           const blob = await zip.generateAsync({type:"blob"});
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');

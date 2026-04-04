@@ -7,24 +7,38 @@ const AppContext = createContext();
 export function AppProvider({ children }) {
   const [supabaseClient, setSupabaseClient] = useState(null);
   const [user, setUser] = useState(null);
-  
+
   // Projects State
   const [projectId, setProjectId] = useState(null);
   const [projectsList, setProjectsList] = useState([]);
-  
-  // Editor State
+
+  // Chat / Conversation State
+  const [chatMessages, setChatMessages] = useState([]);
+  // Each message: { id, role: 'user'|'assistant', content: string, timestamp: number, model?: string }
+
+  // Current website HTML (latest generated)
+  const [currentHtml, setCurrentHtml] = useState('');
+
+  // Feature toggles
+  const [features, setFeatures] = useState([]);
+  // Possible: 'auth', 'contact-form', 'image-gallery', 'multi-page'
+
+  // Uploaded image URLs
+  const [imageUrls, setImageUrls] = useState([]);
+
+  // Legacy state for backward compat with cloud save
   const [pages, setPages] = useState({});
   const [css, setCss] = useState('');
   const [js, setJs] = useState('');
   const [desc, setDesc] = useState('');
   const [history, setHistory] = useState([]);
-  
+
   // UI State
   const [currentFile, setCurrentFile] = useState('index.html');
   const [view, setView] = useState('preview');
   const [theme, setTheme] = useState('dark');
   const [totalTokens, setTotalTokens] = useState(0);
-  
+
   // Auth Modal State
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
@@ -66,13 +80,17 @@ export function AppProvider({ children }) {
         setDesc(data.desc || '');
         setHistory(data.history || []);
         setTotalTokens(data.totalTokens || 0);
+        setChatMessages(data.chatMessages || []);
+        setCurrentHtml(data.currentHtml || '');
+        setFeatures(data.features || []);
+        setImageUrls(data.imageUrls || []);
       }
     } catch(e) {}
   }, []);
 
   useEffect(() => {
     if (!supabaseClient) return;
-    
+
     const { data: authListener } = supabaseClient.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
@@ -86,12 +104,15 @@ export function AppProvider({ children }) {
     };
   }, [supabaseClient]);
 
-  // Save to local storage whenever critical state changes
+  // Save to session storage whenever critical state changes
   useEffect(() => {
     try {
-      sessionStorage.setItem('WEBCRAFT_PROJECT', JSON.stringify({ pages, css, js, desc, history, totalTokens }));
+      sessionStorage.setItem('WEBCRAFT_PROJECT', JSON.stringify({
+        pages, css, js, desc, history, totalTokens,
+        chatMessages, currentHtml, features, imageUrls
+      }));
     } catch(e) {}
-  }, [pages, css, js, desc, history, totalTokens]);
+  }, [pages, css, js, desc, history, totalTokens, chatMessages, currentHtml, features, imageUrls]);
 
   const value = {
     supabaseClient, user, setUser,
@@ -100,7 +121,12 @@ export function AppProvider({ children }) {
     currentFile, setCurrentFile, view, setView, theme, setTheme, totalTokens, setTotalTokens,
     isAuthOpen, setIsAuthOpen,
     sidebarOpen, setSidebarOpen,
-    selectedModel, setSelectedModel
+    selectedModel, setSelectedModel,
+    // New chat state
+    chatMessages, setChatMessages,
+    currentHtml, setCurrentHtml,
+    features, setFeatures,
+    imageUrls, setImageUrls,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
