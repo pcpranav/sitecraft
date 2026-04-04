@@ -1,50 +1,7 @@
 // app/api/ai/route.js
-// AI proxy — Gemini, Groq (Llama), DeepSeek
+// AI proxy — Gemini, Groq (Llama)
 
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-
-const RATE_LIMIT_MAX = 30;
-const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
-const MEM_RATE_LIMIT = new Map();
-
-let _supabase = null;
-function getSupabase() {
-  if (_supabase) return _supabase;
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  _supabase = createClient(url, key);
-  return _supabase;
-}
-
-async function getUserFromToken(req) {
-  const auth = req.headers.get('authorization');
-  if (!auth?.startsWith('Bearer ')) return null;
-  const supabase = getSupabase();
-  if (!supabase) return null;
-  const { data: { user }, error } = await supabase.auth.getUser(auth.slice(7));
-  if (error || !user) return null;
-  return user;
-}
-
-async function checkRateLimit(identifier, isAuthed) {
-  const ip = identifier.ip || 'unknown';
-  const now = Date.now();
-  const entry = MEM_RATE_LIMIT.get(ip) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW };
-  if (now > entry.resetAt) {
-    entry.count = 0;
-    entry.resetAt = now + RATE_LIMIT_WINDOW;
-  }
-  const limit = isAuthed ? RATE_LIMIT_MAX : 10;
-  if (entry.count >= limit) {
-    const mins = Math.ceil((entry.resetAt - now) / 60000);
-    return `Rate limit reached (${limit} req/hr). ${isAuthed ? '' : 'Sign in for higher limits. '}Resets in ~${mins}m.`;
-  }
-  entry.count++;
-  MEM_RATE_LIMIT.set(ip, entry);
-  return null;
-}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -57,14 +14,6 @@ export async function OPTIONS() {
 }
 
 export async function POST(req) {
-  const ip = req.headers.get('x-forwarded-for') || 'unknown';
-  const user = await getUserFromToken(req);
-
-  const rateLimitErr = await checkRateLimit({ ip }, !!user);
-  if (rateLimitErr) {
-    return NextResponse.json({ error: rateLimitErr }, { status: 429, headers: CORS });
-  }
-
   let body;
   try {
     body = await req.json();

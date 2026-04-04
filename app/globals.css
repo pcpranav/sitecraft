@@ -1013,31 +1013,29 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   border-top: 1px solid var(--border);
 }
 .features-grid {
-  max-width: 960px;
+  max-width: 800px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: var(--rl);
-  overflow: hidden;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
 }
 .feature-card {
-  background: var(--bg);
-  padding: 28px 24px;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  align-items: flex-start;
+  pointer-events: none;
+  user-select: none;
 }
-.feature-icon { font-size: 18px; margin-bottom: 4px; }
+.feature-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
 .feature-card h3 {
   font-size: 13px; font-weight: 600;
   color: var(--heading); letter-spacing: -0.03em;
+  margin-bottom: 2px;
 }
 .feature-card p {
   font-size: 12px; color: var(--subtle); line-height: 1.55;
 }
+.feature-text { display: flex; flex-direction: column; }
 
 /* ── LANDING FOOTER ── */
 .landing-footer {
@@ -1050,6 +1048,62 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   color: var(--muted);
   font-family: var(--font-mono);
 }
+
+/* ── SIDEBAR BOTTOM (prompt + model) ── */
+.sidebar-bottom {
+  border-top: 1px solid var(--border);
+  padding: 12px;
+  background: var(--surface);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.sidebar-bottom .sb-label { margin-bottom: 0; }
+.sidebar-bottom #promptArea {
+  height: 100px; line-height: 1.55;
+  font-size: 13px; resize: none;
+}
+
+/* Prompt example chips */
+.prompt-chips {
+  display: flex; flex-wrap: wrap; gap: 4px;
+}
+.prompt-chip {
+  font-size: 10px; font-family: var(--font-mono);
+  padding: 4px 8px; border-radius: 12px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--subtle); cursor: pointer;
+  transition: all var(--transition); text-align: left;
+  line-height: 1.4;
+}
+.prompt-chip:hover { border-color: var(--border2); color: var(--body); background: var(--card); }
+
+/* Model selector at bottom of sidebar */
+.model-selector-bottom { margin-top: 2px; }
+.model-toggle {
+  display: flex; align-items: center; gap: 6px;
+  width: 100%; padding: 5px 8px; border-radius: var(--r);
+  border: none; background: transparent;
+  font-size: 10px; font-family: var(--font-mono);
+  color: var(--muted); cursor: pointer;
+  transition: all var(--transition);
+}
+.model-toggle:hover { color: var(--secondary); background: var(--card); }
+.model-toggle .model-dot { width: 6px; height: 6px; }
+.model-toggle .chevron { margin-left: auto; }
+.model-list {
+  display: flex; flex-direction: column; gap: 1px;
+  margin-top: 4px; border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden;
+}
+.model-option {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 8px; border: none; background: var(--card);
+  font-size: 11px; font-family: var(--font-mono);
+  color: var(--secondary); cursor: pointer;
+  transition: background var(--transition); text-align: left;
+}
+.model-option:hover { background: var(--raise); }
+.model-option.active { color: var(--heading); background: var(--raise); }
+.model-option .model-dot { width: 6px; height: 6px; }
 
 /* ── SIDEBAR TOGGLE (hidden on desktop) ── */
 .sidebar-toggle {
@@ -1065,16 +1119,10 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
 /* ── SIDEBAR OVERLAY (mobile only) ── */
 .sidebar-overlay { display: none; }
 
-/* ── SIDEBAR MODEL SELECT (mobile only — hidden on desktop) ── */
-.sidebar-model-section { display: none; }
-
 /* ══════════════════════════════════════════════════════════
    RESPONSIVE — TABLET (≤ 900px)
    ══════════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
-  /* Landing — features grid to 2 columns */
-  .features-grid { grid-template-columns: repeat(2, 1fr); }
-
   /* Landing — reduce hero padding */
   .hero { padding: 5rem 2rem 3rem; gap: 3rem; }
   .hero h1 { font-size: 48px; }
@@ -1084,9 +1132,6 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   .features { padding: 3rem 2rem; }
   .landing-header { padding: 0 1.5rem; }
   .landing-footer { padding: 1rem 1.5rem; }
-
-  /* Studio — hide deploy status to save space */
-  .deploy-status { display: none; }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1098,27 +1143,8 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
 
   /* Header — compact */
   .header { gap: 8px; padding: 0 12px; height: 48px; }
-  .model-select-wrap { display: none; }
-  .deploy-status { display: none; }
   .logo-text span { display: none; }
   .hdr-btn .export-label { display: none; }
-
-  /* Model selector inside sidebar on mobile */
-  .sidebar-model-select {
-    display: flex; align-items: center; gap: 7px;
-    padding: 8px 10px; border-radius: var(--r);
-    border: 1px solid var(--border); background: var(--card);
-    font-size: 11px; font-family: var(--font-mono);
-    color: var(--secondary); cursor: pointer;
-    transition: all var(--transition); width: 100%;
-  }
-  .sidebar-model-select:hover { border-color: var(--border2); background: var(--raise); }
-  .sidebar-model-dropdown {
-    display: flex; flex-direction: column; gap: 2px;
-    margin-top: 6px;
-  }
-  .sidebar-model-dropdown .md-item { padding: 7px 8px; }
-  .sidebar-model-section { display: block; }
 
   /* Sidebar — off-canvas overlay */
   .sidebar {

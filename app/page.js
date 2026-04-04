@@ -90,15 +90,17 @@ export default function LandingPage() {
       <section className="features" id="features">
         <div className="features-grid">
           {[
-            { icon: '⚡', title: 'Instant generation', desc: 'Get a complete website in under 10 seconds using best-in-class AI models.' },
-            { icon: '🎨', title: 'Fully styled', desc: 'Generated sites include responsive CSS and are mobile-ready out of the box.' },
-            { icon: '☁️', title: 'Cloud sync', desc: 'Save projects to the cloud, access them anywhere, anytime.' },
-            { icon: '📦', title: 'Export & deploy', desc: 'Download your source code as a zip or deploy directly to a live URL.' },
+            { icon: '⚡', title: 'Instant generation', desc: 'Full website in seconds using AI.' },
+            { icon: '🎨', title: 'Fully styled', desc: 'Responsive CSS, mobile-ready.' },
+            { icon: '☁️', title: 'Cloud sync', desc: 'Save and access anywhere.' },
+            { icon: '📦', title: 'Export & deploy', desc: 'Download as zip or go live.' },
           ].map(f => (
             <div className="feature-card" key={f.title}>
               <div className="feature-icon">{f.icon}</div>
-              <h3>{f.title}</h3>
-              <p>{f.desc}</p>
+              <div className="feature-text">
+                <h3>{f.title}</h3>
+                <p>{f.desc}</p>
+              </div>
             </div>
           ))}
         </div>

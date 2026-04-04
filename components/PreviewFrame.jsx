@@ -33,12 +33,28 @@ ${htmlContent}
 </body>
 </html>`;
       } else {
-        // Empty state
+        // Empty state — onboarding for new users
         fullHTML = `<!DOCTYPE html>
 <html>
-<head><style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;color:#888;}</style></head>
+<head><style>
+body{font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#fafafa;color:#666;}
+.wrap{text-align:center;max-width:380px;padding:40px 20px;}
+h1{font-size:22px;font-weight:600;color:#222;margin-bottom:8px;}
+p{font-size:14px;line-height:1.6;margin-bottom:24px;}
+.steps{display:flex;flex-direction:column;gap:12px;text-align:left;}
+.step{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#555;}
+.num{width:22px;height:22px;border-radius:50%;background:#222;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+</style></head>
 <body>
-<div style="text-align:center"><h1 style="font-size:20px;font-weight:600;color:#333">Welcome to Webcraft Studio</h1><p>Generate a site to begin.</p></div>
+<div class="wrap">
+<h1>Your website preview</h1>
+<p>Describe what you want in the sidebar and click Generate. Your website will appear here.</p>
+<div class="steps">
+<div class="step"><div class="num">1</div><span>Type a description in the sidebar, e.g. "A bakery website with menu and ordering"</span></div>
+<div class="step"><div class="num">2</div><span>Click <b>Generate website</b> and wait a few seconds</span></div>
+<div class="step"><div class="num">3</div><span>Your site appears here — edit, export, or regenerate</span></div>
+</div>
+</div>
 </body>
 </html>`;
       }

@@ -1,45 +1,16 @@
 "use client";
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { useAppContext } from '@/context/AppContext';
 import AuthModal from './AuthModal';
 import JSZip from 'jszip';
 
-const MODELS = [
-  { id: 'gemini-2.5-flash', provider: 'gemini', name: 'Gemini 2.5 Flash', desc: 'Fast & free', color: 'var(--blue)' },
-  { id: 'gemini-2.0-flash', provider: 'gemini', name: 'Gemini 2.0 Flash', desc: 'Lightweight', color: 'var(--blue)' },
-  { id: 'llama-3.3-70b-versatile', provider: 'groq', name: 'Llama 3.3 70B', desc: 'Groq · blazing fast', color: 'var(--amber)' },
-];
-
 export default function Header() {
   const {
     user, supabaseClient, theme, setTheme, view, setView,
     isAuthOpen, setIsAuthOpen, pages, setPages, css, setCss, js, setJs,
-    setDesc, setHistory, setProjectId, sidebarOpen, setSidebarOpen,
-    selectedModel, setSelectedModel
+    setDesc, setHistory, setProjectId, sidebarOpen, setSidebarOpen
   } = useAppContext();
-
-  const [modelOpen, setModelOpen] = useState(false);
-  const modelRef = useRef(null);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (modelRef.current && !modelRef.current.contains(e.target)) {
-        setModelOpen(false);
-      }
-    };
-    if (modelOpen) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [modelOpen]);
-
-  const currentModel = MODELS.find(m => m.id === selectedModel) || MODELS[0];
-
-  const handleModelSelect = (model) => {
-    setSelectedModel(model.id);
-    localStorage.setItem('WEBCRAFT_MODEL', model.id);
-    setModelOpen(false);
-  };
 
   const handleSignOut = async () => {
     if (!supabaseClient) return;
@@ -51,7 +22,7 @@ export default function Header() {
       setDesc('');
       setHistory([]);
       setProjectId(null);
-      localStorage.removeItem('WEBCRAFT_PROJECT');
+      sessionStorage.removeItem('WEBCRAFT_PROJECT');
     } catch (e) {
       console.error('Sign out failed:', e);
     }
@@ -76,32 +47,6 @@ export default function Header() {
           <div className="logo-icon">W</div>
           <div className="logo-text">Webcraft<span>STUDIO</span></div>
         </Link>
-
-        <div className="model-select-wrap" ref={modelRef}>
-          <button className={`model-select ${modelOpen ? 'open' : ''}`} onClick={() => setModelOpen(!modelOpen)}>
-            <div className="model-dot" style={{ background: currentModel.color }}></div>
-            <span className="model-name">{currentModel.name}</span>
-            <span className="chevron">▾</span>
-          </button>
-          {modelOpen && (
-            <div className="model-dropdown">
-              {MODELS.map(m => (
-                <button
-                  key={m.id}
-                  className={`md-item ${selectedModel === m.id ? 'selected' : ''}`}
-                  onClick={() => handleModelSelect(m)}
-                >
-                  <div className="model-dot" style={{ background: m.color }}></div>
-                  <div className="md-item-info">
-                    <div className="md-item-name">{m.name}</div>
-                    <div className="md-item-desc">{m.desc}</div>
-                  </div>
-                  {selectedModel === m.id && <span style={{ fontSize: '11px', color: 'var(--green)' }}>✓</span>}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
 
         <div style={{ flex: 1 }}></div>
 

@@ -57,7 +57,7 @@ export function AppProvider({ children }) {
     }
 
     try {
-      const raw = localStorage.getItem('WEBCRAFT_PROJECT');
+      const raw = sessionStorage.getItem('WEBCRAFT_PROJECT');
       if (raw) {
         const data = JSON.parse(raw);
         setPages(data.pages || {});
@@ -89,7 +89,7 @@ export function AppProvider({ children }) {
   // Save to local storage whenever critical state changes
   useEffect(() => {
     try {
-      localStorage.setItem('WEBCRAFT_PROJECT', JSON.stringify({ pages, css, js, desc, history, totalTokens }));
+      sessionStorage.setItem('WEBCRAFT_PROJECT', JSON.stringify({ pages, css, js, desc, history, totalTokens }));
     } catch(e) {}
   }, [pages, css, js, desc, history, totalTokens]);
 

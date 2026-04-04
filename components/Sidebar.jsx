@@ -2,24 +2,32 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 
+const MODELS = [
+  { id: 'gemini-2.5-flash', provider: 'gemini', name: 'Gemini 2.5 Flash', desc: 'Fast & free', color: 'var(--blue)' },
+  { id: 'gemini-2.0-flash', provider: 'gemini', name: 'Gemini 2.0 Flash', desc: 'Lightweight', color: 'var(--blue)' },
+  { id: 'llama-3.3-70b-versatile', provider: 'groq', name: 'Llama 3.3 70B', desc: 'Groq · fast', color: 'var(--amber)' },
+];
+
+const EXAMPLE_PROMPTS = [
+  'A bakery website with menu and online ordering',
+  'Portfolio for a freelance photographer',
+  'Landing page for a fitness app',
+  'Restaurant with reservations and gallery',
+];
+
 export default function Sidebar() {
-  const { 
-    pages, setPages, css, setCss, js, setJs, 
+  const {
+    pages, setPages, css, setCss, js, setJs,
     desc, setDesc, history, setHistory, currentFile, setCurrentFile,
     supabaseClient, projectId, setProjectId, user, totalTokens, setTotalTokens,
     setIsAuthOpen, sidebarOpen, setSidebarOpen, selectedModel, setSelectedModel
   } = useAppContext();
-  
+
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
-  const [mobileModelOpen, setMobileModelOpen] = useState(false);
+  const [modelOpen, setModelOpen] = useState(false);
 
-  const MODELS = [
-    { id: 'gemini-2.5-flash', provider: 'gemini', name: 'Gemini 2.5 Flash', desc: 'Fast & free', color: 'var(--blue)' },
-    { id: 'gemini-2.0-flash', provider: 'gemini', name: 'Gemini 2.0 Flash', desc: 'Lightweight', color: 'var(--blue)' },
-    { id: 'llama-3.3-70b-versatile', provider: 'groq', name: 'Llama 3.3 70B', desc: 'Groq · blazing fast', color: 'var(--amber)' },
-  ];
   const currentModel = MODELS.find(m => m.id === selectedModel) || MODELS[0];
 
   useEffect(() => {
@@ -31,7 +39,6 @@ export default function Sidebar() {
     try {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (!session?.access_token) return;
-
       const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`,
@@ -46,17 +53,9 @@ export default function Sidebar() {
       };
       let res;
       if (projectId) {
-        res = await fetch(`/api/projects/${projectId}`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify(payload)
-        });
+        res = await fetch(`/api/projects/${projectId}`, { method: 'PUT', headers, body: JSON.stringify(payload) });
       } else {
-        res = await fetch('/api/projects', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload)
-        });
+        res = await fetch('/api/projects', { method: 'POST', headers, body: JSON.stringify(payload) });
       }
       const resData = await res.json();
       if (!res.ok) throw new Error(resData.error);
@@ -80,7 +79,6 @@ export default function Sidebar() {
     }, 4000);
 
     try {
-      // Derive provider from selected model
       const providerMap = {
         'gemini-2.5-flash': 'gemini', 'gemini-2.0-flash': 'gemini',
         'llama-3.3-70b-versatile': 'groq',
@@ -94,19 +92,19 @@ export default function Sidebar() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      
+
       setPages(data.pages || {});
       setCss(data.shared_css || '');
       setJs(data.shared_js || '');
       setCurrentFile('index.html');
       setTotalTokens(prev => prev + (data.tokens || 0));
-      
+
       const newHistory = [{
         prompt,
         pages: data.pages || {}, css: data.shared_css || '', js: data.shared_js || '',
         ts: Date.now()
       }, ...history];
-      
+
       setHistory(newHistory);
       saveToCloud(data.pages || {}, data.shared_css || '', data.shared_js || '', newHistory);
     } catch(e) {
@@ -129,51 +127,13 @@ export default function Sidebar() {
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
       <div className="sidebar-scroll">
 
-        {/* MODEL SELECTOR (mobile only, hidden on desktop via CSS) */}
-        <div className="sb-section sidebar-model-section">
-          <div className="sb-header">
-            <span className="sb-label">Model</span>
-          </div>
-          <button
-            className="sidebar-model-select"
-            onClick={() => setMobileModelOpen(!mobileModelOpen)}
-          >
-            <div className="model-dot" style={{ background: currentModel.color }}></div>
-            <span style={{ flex: 1 }}>{currentModel.name}</span>
-            <span className="chevron" style={{ transform: mobileModelOpen ? 'rotate(180deg)' : '' }}>▾</span>
-          </button>
-          {mobileModelOpen && (
-            <div className="sidebar-model-dropdown">
-              {MODELS.map(m => (
-                <button
-                  key={m.id}
-                  className={`md-item ${selectedModel === m.id ? 'selected' : ''}`}
-                  onClick={() => {
-                    setSelectedModel(m.id);
-                    localStorage.setItem('WEBCRAFT_MODEL', m.id);
-                    setMobileModelOpen(false);
-                  }}
-                >
-                  <div className="model-dot" style={{ background: m.color }}></div>
-                  <div className="md-item-info">
-                    <div className="md-item-name">{m.name}</div>
-                    <div className="md-item-desc">{m.desc}</div>
-                  </div>
-                  {selectedModel === m.id && <span style={{ fontSize: '11px', color: 'var(--green)' }}>✓</span>}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="sb-divider" />
-        </div>
-
         {/* FILES */}
         <div className="sb-section">
           <div className="sb-header">
             <span className="sb-label">Files</span>
           </div>
           {fileCount === 0 ? (
-            <div style={{ fontSize:'11px', color:'var(--muted)', padding: '4px 2px' }}>No files</div>
+            <div style={{ fontSize:'11px', color:'var(--muted)', padding: '4px 2px' }}>No files yet</div>
           ) : (
             <div className="file-tree">
               {Object.keys(pages).map(file => (
@@ -254,37 +214,60 @@ export default function Sidebar() {
         </div>
       )}
 
-      {/* Prompt input at bottom */}
-      <div style={{
-        borderTop: '1px solid var(--border)',
-        padding: '14px 12px',
-        background: 'var(--surface)',
-        display: 'flex', flexDirection: 'column', gap: '10px'
-      }}>
-        <div className="sb-header">
-          <span className="sb-label">Idea</span>
-          <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>
-            {prompt.length} chars
-          </span>
-        </div>
+      {/* Prompt + model selector at bottom */}
+      <div className="sidebar-bottom">
+        <span className="sb-label">Describe your website</span>
         <textarea
           value={prompt}
           onChange={e => setPrompt(e.target.value)}
-          placeholder="A luxury watch brand..."
+          placeholder="e.g. A bakery website with menu, gallery, and online ordering..."
           disabled={loading}
           id="promptArea"
-          style={{ height: 88 }}
         />
+
+        {/* Example prompts when empty */}
+        {!prompt && !loading && fileCount === 0 && (
+          <div className="prompt-chips">
+            {EXAMPLE_PROMPTS.map((p, i) => (
+              <button key={i} className="prompt-chip" onClick={() => setPrompt(p)}>{p}</button>
+            ))}
+          </div>
+        )}
+
         <button
           className="btn btn-primary btn-full"
           onClick={generateSite}
           disabled={loading || !prompt.trim()}
         >
           {loading
-            ? <><div className="gen-spinner"></div> Generating…</>
-            : '✦ Generate website'
+            ? <><div className="gen-spinner"></div> Generating...</>
+            : 'Generate website'
           }
         </button>
+
+        {/* Model selector */}
+        <div className="model-selector-bottom">
+          <button className="model-toggle" onClick={() => setModelOpen(!modelOpen)}>
+            <div className="model-dot" style={{ background: currentModel.color }}></div>
+            <span>{currentModel.name}</span>
+            <span className="chevron" style={{ transform: modelOpen ? 'rotate(180deg)' : '' }}>▾</span>
+          </button>
+          {modelOpen && (
+            <div className="model-list">
+              {MODELS.map(m => (
+                <button
+                  key={m.id}
+                  className={`model-option ${selectedModel === m.id ? 'active' : ''}`}
+                  onClick={() => { setSelectedModel(m.id); localStorage.setItem('WEBCRAFT_MODEL', m.id); setModelOpen(false); }}
+                >
+                  <div className="model-dot" style={{ background: m.color }}></div>
+                  <span>{m.name}</span>
+                  {selectedModel === m.id && <span style={{ marginLeft: 'auto', color: 'var(--green)', fontSize: '11px' }}>✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
     </>
