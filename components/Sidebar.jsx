@@ -3,7 +3,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 
 const MODELS = [
-  { id: 'gemini-2.5-flash', provider: 'gemini', name: 'Gemini 2.5 Flash', desc: 'Fast & free', color: '#3b82f6' },
+  { id: 'gemini-2.5-flash', provider: 'gemini', name: 'Gemini 2.5 Flash', desc: 'Fast & smart', color: '#3b82f6' },
+  { id: 'gemini-2.5-flash-lite', provider: 'gemini', name: 'Gemini 2.5 Flash Lite', desc: 'Fastest · unlimited', color: '#06b6d4' },
+  { id: 'gemini-2.5-pro', provider: 'gemini', name: 'Gemini 2.5 Pro', desc: 'Best quality', color: '#8b5cf6' },
+  { id: 'gemini-3-flash-preview', provider: 'gemini', name: 'Gemini 3 Flash', desc: 'Latest · preview', color: '#10b981' },
   { id: 'llama-3.3-70b-versatile', provider: 'groq', name: 'Llama 3.3 70B', desc: 'Groq · fast', color: '#eab308' },
 ];
 
@@ -151,8 +154,8 @@ export default function Sidebar() {
     }, 3000);
 
     try {
-      const providerMap = { 'gemini-2.5-flash': 'gemini', 'llama-3.3-70b-versatile': 'groq' };
-      const provider = providerMap[selectedModel] || 'gemini';
+      const model = MODELS.find(m => m.id === selectedModel) || MODELS[0];
+      const provider = model.provider;
 
       // Build conversation messages for the API
       // Include current HTML context in the conversation
