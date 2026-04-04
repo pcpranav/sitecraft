@@ -59,7 +59,8 @@ Rules:
     let parsed;
 
     // If response looks like HTML, use it directly
-    if (rawText.startsWith('<!DOCTYPE') || rawText.startsWith('<html')) {
+    const lower = rawText.toLowerCase();
+    if (lower.startsWith('<!doctype') || lower.startsWith('<html')) {
       parsed = { pages: { 'index.html': rawText }, shared_css: '', shared_js: '' };
     } else {
       // Try to extract JSON (for structured responses or legacy flow)

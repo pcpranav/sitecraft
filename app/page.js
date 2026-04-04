@@ -44,9 +44,11 @@ export default function LandingPage() {
             <Link href="/studio" className="btn btn-primary hero-btn">
               Start Building
             </Link>
-            <button className="hero-ghost-btn" onClick={() => setIsAuthOpen(true)}>
-              Sign in free →
-            </button>
+            {!user && (
+              <button className="hero-ghost-btn" onClick={() => setIsAuthOpen(true)}>
+                Sign in free →
+              </button>
+            )}
           </div>
         </div>
 
@@ -109,9 +111,13 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="landing-footer">
         <span>© {new Date().getFullYear()} Webcraft Studio</span>
-        <button className="landing-login-btn" onClick={() => setIsAuthOpen(true)}>
-          Get Started for free →
-        </button>
+        {user ? (
+          <Link href="/studio" className="landing-login-btn">Open Studio →</Link>
+        ) : (
+          <button className="landing-login-btn" onClick={() => setIsAuthOpen(true)}>
+            Get Started for free →
+          </button>
+        )}
       </footer>
 
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />

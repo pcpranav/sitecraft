@@ -646,6 +646,28 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
 }
 .deploy-out a { color: var(--green); text-decoration: underline; }
 
+/* ── SIDEBAR LOADING ── */
+.sidebar-loading {
+  padding: 14px 16px;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  display: flex; gap: 10px; align-items: center;
+}
+.loading-dots {
+  display: flex; gap: 3px; align-items: center;
+}
+.loading-dots span {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--accent);
+  animation: dotBounce 1.4s ease-in-out infinite;
+}
+.loading-dots span:nth-child(2) { animation-delay: .2s; }
+.loading-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes dotBounce {
+  0%, 80%, 100% { opacity: .25; transform: scale(.8); }
+  40% { opacity: 1; transform: scale(1.1); }
+}
+
 /* ── GEN BTN LOADING ── */
 .gen-spinner {
   width: 13px; height: 13px;
@@ -783,12 +805,38 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
 .ud-item:hover { background: var(--card); color: var(--body); }
 .ud-item.danger { color: var(--red); }
 .ud-item.danger:hover { background: rgba(248,113,113,.08); }
+.user-pill-wrap { position: relative; }
+.user-pill-name {
+  max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.user-avatar-img {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  object-fit: cover;
+}
+.ud-header { padding: 10px 10px 6px; }
+.ud-name {
+  font-size: 13px; font-weight: 600; color: var(--heading);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .ud-email {
   font-size: 10px; font-family: var(--font-mono); color: var(--muted);
-  padding: 4px 10px 6px; overflow: hidden; text-overflow: ellipsis;
+  padding: 2px 0 0; overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap;
 }
+.ud-section-label {
+  font-size: 9px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--muted); padding: 6px 10px 4px;
+}
+.ud-projects { max-height: 180px; overflow-y: auto; }
+.ud-proj-name {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ud-empty {
+  font-size: 11px; color: var(--muted); padding: 6px 10px;
+  font-family: var(--font-mono);
+}
 .ud-divider { height: 1px; background: var(--border); margin: 4px 2px; }
+@keyframes fadeDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ── SAVED PROJECTS ── */
 .proj-list { display: flex; flex-direction: column; gap: 2px; }
@@ -1195,6 +1243,15 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   .logo-text span { display: none; }
   .hdr-btn .export-label { display: none; }
 
+  /* Profile pill — compact on mobile */
+  .user-pill-name { display: none; }
+  .user-pill { padding: 3px; border-radius: 50%; gap: 0; }
+  .user-pill svg { display: none; }
+  .user-dropdown { right: -8px; min-width: 220px; }
+
+  /* Welcome heading — smaller on mobile */
+  .empty-prompt-wrap h2 { font-size: 22px; padding: 0 8px; }
+
   /* Sidebar — off-canvas overlay */
   .sidebar {
     position: fixed; top: 0; left: 0; bottom: 0;
@@ -1263,4 +1320,16 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   .sidebar { width: 260px; }
 
   #promptArea { height: 72px; }
+
+  /* Profile dropdown — near full width */
+  .user-dropdown { right: -12px; min-width: 200px; max-width: calc(100vw - 24px); }
+  .ud-name { font-size: 12px; }
+  .ud-email { font-size: 9px; }
+
+  /* Welcome — even smaller */
+  .empty-prompt-wrap h2 { font-size: 18px; line-height: 1.4; }
+
+  /* Loading message — compact */
+  .sidebar-loading { padding: 10px 12px; gap: 8px; }
+  .loading-msg { font-size: 10px; }
 }

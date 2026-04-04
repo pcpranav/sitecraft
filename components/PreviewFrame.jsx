@@ -15,7 +15,7 @@ export default function PreviewFrame() {
   const {
     pages, css, js, currentFile, view, setPages, setCss, setJs,
     setDesc, setCurrentFile, setTotalTokens,
-    history, setHistory, selectedModel
+    history, setHistory, selectedModel, user
   } = useAppContext();
   const iframeRef = useRef(null);
   const [prompt, setPrompt] = useState('');
@@ -63,14 +63,25 @@ ${htmlContent}
     if (!prompt.trim()) return;
     setDesc(prompt);
     setLoading(true);
-    setLoadingMsg('Designing your website...');
+    const msgs = [
+      'Thinking about your website...',
+      'Sketching out the layout...',
+      'Picking the right colors and fonts...',
+      'Writing clean, semantic HTML...',
+      'Styling everything to look great...',
+      'Adding interactive elements...',
+      'Making it responsive for all screens...',
+      'Polishing the little details...',
+      'Almost there, just finishing up...',
+      'Running a final check...',
+    ];
+    setLoadingMsg(msgs[0]);
 
     let cycleCount = 0;
     const interval = setInterval(() => {
       cycleCount++;
-      const msgs = ['Designing your website...', 'Writing the code...', 'Adding styles...', 'Almost ready...'];
-      setLoadingMsg(msgs[cycleCount % msgs.length]);
-    }, 3000);
+      setLoadingMsg(msgs[Math.min(cycleCount, msgs.length - 1)]);
+    }, 3500);
 
     try {
       const providerMap = { 'gemini-2.5-flash': 'gemini', 'llama-3.3-70b-versatile': 'groq' };
@@ -80,7 +91,9 @@ ${htmlContent}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, isEdit: false, pages: {}, css: '', js: '', currentFile: 'index.html', model: selectedModel, provider })
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { throw new Error('Unexpected response from server'); }
       if (!res.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
 
       setPages(data.pages || {});
@@ -117,7 +130,7 @@ ${htmlContent}
     return (
       <div className="preview">
         <div className="empty-prompt-wrap">
-          <h2>What website do you want to build?</h2>
+          <h2>{user ? `Hey ${user.user_metadata?.full_name?.split(' ')[0] || user.user_metadata?.name?.split(' ')[0] || user.email?.split('@')[0] || 'there'}! What are we building?` : 'What website do you want to build?'}</h2>
           <p>Describe your idea and we'll generate a complete website in seconds.</p>
           <textarea
             className="empty-prompt-input"

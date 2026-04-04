@@ -68,14 +68,25 @@ export default function Sidebar() {
     if (!prompt.trim()) return;
     setDesc(prompt);
     setLoading(true);
-    setLoadingMsg('Architecting your site');
+    const msgs = [
+      'Thinking about your website...',
+      'Sketching out the layout...',
+      'Picking the right colors and fonts...',
+      'Writing clean, semantic HTML...',
+      'Styling everything to look great...',
+      'Adding interactive elements...',
+      'Making it responsive for all screens...',
+      'Polishing the little details...',
+      'Almost there, just finishing up...',
+      'Running a final check...',
+    ];
+    setLoadingMsg(msgs[0]);
 
     let cycleCount = 0;
     const interval = setInterval(() => {
       cycleCount++;
-      const msgs = ['Architecting your site','Designing the layout','Writing the code','Polishing the details','Almost ready'];
-      setLoadingMsg(msgs[cycleCount % msgs.length]);
-    }, 4000);
+      setLoadingMsg(msgs[Math.min(cycleCount, msgs.length - 1)]);
+    }, 3500);
 
     try {
       const providerMap = {
@@ -89,8 +100,10 @@ export default function Sidebar() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { throw new Error(`Unexpected response from server`); }
+      if (!res.ok) throw new Error(data.error || 'Generation failed');
 
       setPages(data.pages || {});
       setCss(data.shared_css || '');
@@ -203,13 +216,11 @@ export default function Sidebar() {
 
       {/* Loading indicator */}
       {loading && (
-        <div style={{
-          padding: '12px 16px', background: 'var(--panel)',
-          borderTop: '1px solid var(--border)',
-          display: 'flex', gap: '10px', alignItems: 'center'
-        }}>
-          <div className="spinner" style={{ width: 14, height: 14 }}></div>
-          <span style={{ fontSize: '11px', color: 'var(--subtle)', fontFamily: 'var(--font-mono)' }}>{loadingMsg}</span>
+        <div className="sidebar-loading">
+          <div className="loading-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <span className="loading-msg">{loadingMsg}</span>
         </div>
       )}
 
