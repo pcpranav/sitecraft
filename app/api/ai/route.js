@@ -115,7 +115,15 @@ export async function POST(req) {
   }
 
   if (imageUrls.length > 0) {
-    systemPrompt += `\n\n## USER-PROVIDED IMAGES\nThe user has uploaded these images. Use them in the website where appropriate:\n${imageUrls.map((url, i) => `- Image ${i + 1}: ${url}`).join('\n')}`;
+    // Only include non-base64 URLs in system prompt (base64 would be too large)
+    const externalUrls = imageUrls.filter(u => !u.startsWith('data:'));
+    const base64Count = imageUrls.length - externalUrls.length;
+    if (externalUrls.length > 0) {
+      systemPrompt += `\n\n## USER-PROVIDED IMAGES\nUse these images in the website where appropriate:\n${externalUrls.map((url, i) => `- Image ${i + 1}: ${url}`).join('\n')}`;
+    }
+    if (base64Count > 0) {
+      systemPrompt += `\n\nThe user has also uploaded ${base64Count} image(s). Use placeholder Unsplash images in their place with similar dimensions.`;
+    }
   }
 
   // Messages should already be structured from the client
@@ -198,12 +206,29 @@ async function callGemini({ model, system, messages, max_tokens }) {
 
   let data;
   try { data = await res.json(); } catch { throw new Error(`Gemini returned invalid JSON (${res.status})`); }
-  if (!res.ok || data.error) throw new Error(data.error?.message || `Gemini error ${res.status}`);
+  if (!res.ok || data.error) {
+    const msg = data.error?.message || `Gemini error ${res.status}`;
+    console.error('[Gemini] API error:', JSON.stringify(data.error || data, null, 2));
+    throw new Error(msg);
+  }
 
   const candidate = data.candidates?.[0];
-  if (!candidate) throw new Error('No response from model');
+  if (!candidate) {
+    const reason = data.promptFeedback?.blockReason;
+    console.error('[Gemini] No candidate:', JSON.stringify(data, null, 2));
+    throw new Error(reason ? `Blocked by safety filter: ${reason}` : 'No response from model — try rephrasing your prompt');
+  }
+
+  // Check if blocked by safety filters
+  if (candidate.finishReason === 'SAFETY' || candidate.finishReason === 'BLOCKED') {
+    throw new Error('Response blocked by safety filter — try rephrasing your prompt');
+  }
 
   const text = candidate.content?.parts?.[0]?.text ?? '';
+  if (!text) {
+    console.error('[Gemini] Empty text. Candidate:', JSON.stringify(candidate, null, 2));
+    throw new Error('Model returned empty response — try again');
+  }
   return {
     content: [{ type: 'text', text }],
     usage: {
