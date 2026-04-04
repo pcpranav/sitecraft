@@ -1,16 +1,33 @@
 "use client";
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
 
+const QUICK_IDEAS = [
+  'A bakery with menu and online ordering',
+  'Portfolio for a freelance designer',
+  'Landing page for a fitness app',
+  'Restaurant with reservations and gallery',
+  'Tech startup with pricing and features',
+  'Wedding photographer portfolio',
+];
+
 export default function PreviewFrame() {
-  const { pages, css, js, currentFile, view, setPages, setCss, setJs } = useAppContext();
+  const {
+    pages, css, js, currentFile, view, setPages, setCss, setJs,
+    setDesc, setCurrentFile, setTotalTokens,
+    history, setHistory, selectedModel
+  } = useAppContext();
   const iframeRef = useRef(null);
+  const [prompt, setPrompt] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState('');
 
-  // Update iframe whenever code changes but ONLY if we are in preview mode
+  const hasContent = Object.keys(pages).length > 0;
+
+  // Update iframe whenever code changes
   useEffect(() => {
-    if (view !== 'preview') return;
+    if (view !== 'preview' || !hasContent) return;
 
-    // De-bounce slightly
     const timer = setTimeout(() => {
       const doc = iframeRef.current?.contentDocument;
       if (!doc) return;
@@ -20,10 +37,8 @@ export default function PreviewFrame() {
 
       let fullHTML;
       if (isFullDoc) {
-        // AI returned a complete HTML document — use it directly
         fullHTML = htmlContent;
       } else if (htmlContent) {
-        // Body fragment — wrap it with shared CSS/JS
         fullHTML = `<!DOCTYPE html>
 <html>
 <head><style>${css}</style></head>
@@ -33,30 +48,7 @@ ${htmlContent}
 </body>
 </html>`;
       } else {
-        // Empty state — onboarding for new users
-        fullHTML = `<!DOCTYPE html>
-<html>
-<head><style>
-body{font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#fafafa;color:#666;}
-.wrap{text-align:center;max-width:380px;padding:40px 20px;}
-h1{font-size:22px;font-weight:600;color:#222;margin-bottom:8px;}
-p{font-size:14px;line-height:1.6;margin-bottom:24px;}
-.steps{display:flex;flex-direction:column;gap:12px;text-align:left;}
-.step{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#555;}
-.num{width:22px;height:22px;border-radius:50%;background:#222;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
-</style></head>
-<body>
-<div class="wrap">
-<h1>Your website preview</h1>
-<p>Describe what you want in the sidebar and click Generate. Your website will appear here.</p>
-<div class="steps">
-<div class="step"><div class="num">1</div><span>Type a description in the sidebar, e.g. "A bakery website with menu and ordering"</span></div>
-<div class="step"><div class="num">2</div><span>Click <b>Generate website</b> and wait a few seconds</span></div>
-<div class="step"><div class="num">3</div><span>Your site appears here — edit, export, or regenerate</span></div>
-</div>
-</div>
-</body>
-</html>`;
+        fullHTML = '<!DOCTYPE html><html><body></body></html>';
       }
 
       doc.open();
@@ -65,17 +57,53 @@ p{font-size:14px;line-height:1.6;margin-bottom:24px;}
     }, 150);
 
     return () => clearTimeout(timer);
-  }, [pages, css, js, currentFile, view]);
+  }, [pages, css, js, currentFile, view, hasContent]);
+
+  const generateSite = async () => {
+    if (!prompt.trim()) return;
+    setDesc(prompt);
+    setLoading(true);
+    setLoadingMsg('Designing your website...');
+
+    let cycleCount = 0;
+    const interval = setInterval(() => {
+      cycleCount++;
+      const msgs = ['Designing your website...', 'Writing the code...', 'Adding styles...', 'Almost ready...'];
+      setLoadingMsg(msgs[cycleCount % msgs.length]);
+    }, 3000);
+
+    try {
+      const providerMap = { 'gemini-2.5-flash': 'gemini', 'llama-3.3-70b-versatile': 'groq' };
+      const provider = providerMap[selectedModel] || 'gemini';
+      const res = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, isEdit: false, pages: {}, css: '', js: '', currentFile: 'index.html', model: selectedModel, provider })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
+
+      setPages(data.pages || {});
+      setCss(data.shared_css || '');
+      setJs(data.shared_js || '');
+      setCurrentFile('index.html');
+      setTotalTokens(prev => prev + (data.tokens || 0));
+
+      const newHistory = [{ prompt, pages: data.pages || {}, css: data.shared_css || '', js: data.shared_js || '', ts: Date.now() }, ...history];
+      setHistory(newHistory);
+    } catch (e) {
+      alert("Generation failed: " + (e.message || 'Unknown error. Try a different model.'));
+    } finally {
+      clearInterval(interval);
+      setLoading(false);
+    }
+  };
 
   const handleCodeChange = (e) => {
     const newVal = e.target.value;
-    if (currentFile === 'shared.css') {
-      setCss(newVal);
-    } else if (currentFile === 'shared.js') {
-      setJs(newVal);
-    } else {
-      setPages({ ...pages, [currentFile]: newVal });
-    }
+    if (currentFile === 'shared.css') setCss(newVal);
+    else if (currentFile === 'shared.js') setJs(newVal);
+    else setPages({ ...pages, [currentFile]: newVal });
   };
 
   const getCodeValue = () => {
@@ -83,6 +111,44 @@ p{font-size:14px;line-height:1.6;margin-bottom:24px;}
     if (currentFile === 'shared.js') return js;
     return pages[currentFile] || '';
   };
+
+  // Empty state — show prompt input directly
+  if (!hasContent && view === 'preview') {
+    return (
+      <div className="preview">
+        <div className="empty-prompt-wrap">
+          <h2>What website do you want to build?</h2>
+          <p>Describe your idea and we'll generate a complete website in seconds.</p>
+          <textarea
+            className="empty-prompt-input"
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            placeholder="e.g. A bakery website with a menu, photo gallery, and online ordering form..."
+            disabled={loading}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); generateSite(); } }}
+          />
+          <button
+            className="btn btn-primary btn-full empty-prompt-btn"
+            onClick={generateSite}
+            disabled={loading || !prompt.trim()}
+          >
+            {loading ? loadingMsg : 'Generate website'}
+          </button>
+
+          {!prompt && !loading && (
+            <div className="quick-ideas">
+              <span className="quick-ideas-label">Try an idea:</span>
+              <div className="quick-ideas-list">
+                {QUICK_IDEAS.map((idea, i) => (
+                  <button key={i} className="quick-idea" onClick={() => setPrompt(idea)}>{idea}</button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="preview">
@@ -99,11 +165,11 @@ p{font-size:14px;line-height:1.6;margin-bottom:24px;}
           value={getCodeValue()}
           onChange={handleCodeChange}
           spellCheck={false}
-          style={{ 
-            width: '100%', height: '100%', padding: '16px', 
-            fontFamily: 'var(--font-mono)', fontSize: '13px', 
+          style={{
+            width: '100%', height: '100%', padding: '16px',
+            fontFamily: 'var(--font-mono)', fontSize: '13px',
             background: 'var(--bg)', color: 'var(--body)',
-            border: 'none', outline: 'none', resize: 'none' 
+            border: 'none', outline: 'none', resize: 'none'
           }}
         />
       )}

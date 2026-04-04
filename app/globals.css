@@ -506,6 +506,55 @@ textarea::placeholder, input::placeholder { color: var(--muted); }
 .ptab:hover { color: var(--secondary); }
 .ptab.active { border-color: var(--border); background: var(--card); color: var(--heading); }
 
+/* ── EMPTY PROMPT (in preview area) ── */
+.empty-prompt-wrap {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 2rem 1.5rem; text-align: center;
+  max-width: 520px; margin: 0 auto; gap: 14px;
+}
+.empty-prompt-wrap h2 {
+  font-size: 22px; font-weight: 700; color: var(--heading);
+  letter-spacing: -.03em; line-height: 1.2;
+}
+.empty-prompt-wrap > p {
+  font-size: 14px; color: var(--subtle); line-height: 1.6;
+  margin-bottom: 8px;
+}
+.empty-prompt-input {
+  width: 100%; min-height: 100px; padding: 14px 16px;
+  font-family: var(--font-sans); font-size: 14px;
+  background: var(--card); color: var(--body);
+  border: 1px solid var(--border); border-radius: var(--rl);
+  outline: none; resize: none; line-height: 1.6;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.empty-prompt-input:focus {
+  border-color: var(--heading);
+  box-shadow: 0 0 0 3px var(--accent-s);
+}
+.empty-prompt-input::placeholder { color: var(--muted); }
+.empty-prompt-btn { margin-top: 4px; height: 44px; font-size: 14px; }
+
+.quick-ideas { margin-top: 16px; width: 100%; text-align: left; }
+.quick-ideas-label {
+  font-size: 10px; font-family: var(--font-mono);
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.quick-ideas-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.quick-idea {
+  font-size: 12px; padding: 5px 10px;
+  border-radius: 16px; border: 1px solid var(--border);
+  background: transparent; color: var(--subtle);
+  cursor: pointer; transition: all var(--transition);
+  font-family: var(--font-sans); text-align: left;
+}
+.quick-idea:hover {
+  border-color: var(--heading); color: var(--heading);
+  background: var(--accent-s);
+}
+
 /* ── FRAME ── */
 #previewArea { flex: 1; overflow: hidden; position: relative; display: flex; flex-direction: column; }
 #frameArea {

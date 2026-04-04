@@ -4,7 +4,6 @@ import { useAppContext } from '@/context/AppContext';
 
 const MODELS = [
   { id: 'gemini-2.5-flash', provider: 'gemini', name: 'Gemini 2.5 Flash', desc: 'Fast & free', color: 'var(--blue)' },
-  { id: 'gemini-2.0-flash', provider: 'gemini', name: 'Gemini 2.0 Flash', desc: 'Lightweight', color: 'var(--blue)' },
   { id: 'llama-3.3-70b-versatile', provider: 'groq', name: 'Llama 3.3 70B', desc: 'Groq · fast', color: 'var(--amber)' },
 ];
 
@@ -80,7 +79,7 @@ export default function Sidebar() {
 
     try {
       const providerMap = {
-        'gemini-2.5-flash': 'gemini', 'gemini-2.0-flash': 'gemini',
+        'gemini-2.5-flash': 'gemini',
         'llama-3.3-70b-versatile': 'groq',
       };
       const provider = providerMap[selectedModel] || 'gemini';
