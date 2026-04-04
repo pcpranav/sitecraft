@@ -23,22 +23,6 @@ export default function PreviewFrame() {
     return '';
   };
 
-  // Update iframe whenever code changes
-  useEffect(() => {
-    if (view !== 'preview' || !hasContent) return;
-
-    const timer = setTimeout(() => {
-      const doc = iframeRef.current?.contentDocument;
-      if (!doc) return;
-      const fullHTML = getDisplayHtml();
-      doc.open();
-      doc.write(fullHTML);
-      doc.close();
-    }, 150);
-
-    return () => clearTimeout(timer);
-  }, [currentHtml, pages, css, js, currentFile, view, hasContent]);
-
   const handleCodeChange = (e) => {
     const newVal = e.target.value;
     if (currentFile === 'shared.css') setCss(newVal);
@@ -52,6 +36,8 @@ export default function PreviewFrame() {
     if (currentFile === 'shared.js') return js;
     return pages[currentFile] || '';
   };
+
+  const displayHtml = getDisplayHtml();
 
   // Empty state — handled by sidebar chat now, just show a subtle message
   if (!hasContent && view === 'preview') {
@@ -76,8 +62,10 @@ export default function PreviewFrame() {
     <div className="preview">
       {view === 'preview' ? (
         <iframe
-          ref={iframeRef}
-          sandbox="allow-scripts allow-same-origin"
+          // Use srcdoc for improved reliability and security context (fixes Chrome ORB blocks)
+          srcDoc={displayHtml}
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+          referrerPolicy="no-referrer"
           style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
           title="Preview"
         />
