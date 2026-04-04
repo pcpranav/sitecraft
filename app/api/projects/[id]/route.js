@@ -20,7 +20,7 @@ let _supabase = null;
 function getSupabase() {
   if (_supabase) return _supabase;
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_KEY;
+  const key = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
   if (!url || !key) throw new Error('Supabase not configured');
   _supabase = createClient(url, key);
   return _supabase;
@@ -36,7 +36,7 @@ async function getUser(req) {
   return user;
 }
 
-export default async (req) => {
+async function handleRequest(req, ctx) {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: CORS });
   }
@@ -76,8 +76,13 @@ export default async (req) => {
 
     // POST /api/projects — create new project
     if (req.method === 'POST') {
-      const body = await req.json();
-      const { name, description, pages, shared_css, shared_js } = body;
+      let body;
+      try {
+        body = await req.json();
+      } catch (err) {
+        return json({ error: 'Invalid JSON payload' }, 400);
+      }
+      const { name, description, pages, shared_css, shared_js, history } = body;
       const { data, error } = await supabase
         .from('projects')
         .insert({
@@ -87,6 +92,7 @@ export default async (req) => {
           pages: pages || {},
           shared_css: shared_css || '',
           shared_js: shared_js || '',
+          history: history || [],
         })
         .select()
         .single();
@@ -96,13 +102,19 @@ export default async (req) => {
 
     // PUT /api/projects/:id — update project
     if (req.method === 'PUT' && projectId) {
-      const body = await req.json();
+      let body;
+      try {
+        body = await req.json();
+      } catch (err) {
+        return json({ error: 'Invalid JSON payload' }, 400);
+      }
       const updates = {};
       if (body.name !== undefined) updates.name = body.name;
       if (body.description !== undefined) updates.description = body.description;
       if (body.pages !== undefined) updates.pages = body.pages;
       if (body.shared_css !== undefined) updates.shared_css = body.shared_css;
       if (body.shared_js !== undefined) updates.shared_js = body.shared_js;
+      if (body.history !== undefined) updates.history = body.history;
       if (body.is_deployed !== undefined) updates.is_deployed = body.is_deployed;
       if (body.deploy_url !== undefined) updates.deploy_url = body.deploy_url;
       if (body.thumbnail !== undefined) updates.thumbnail = body.thumbnail;
@@ -137,3 +149,10 @@ export default async (req) => {
 };
 
 export const config = { path: ['/api/projects', '/api/projects/*'] };
+
+
+export async function GET(req, ctx) { return handleRequest(req, ctx); }
+export async function POST(req, ctx) { return handleRequest(req, ctx); }
+export async function PUT(req, ctx) { return handleRequest(req, ctx); }
+export async function DELETE(req, ctx) { return handleRequest(req, ctx); }
+export async function OPTIONS(req, ctx) { return handleRequest(req, ctx); }

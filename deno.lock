@@ -11,7 +11,9 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
-        "npm:@supabase/supabase-js@^2.101.0"
+        "npm:@supabase/supabase-js@^2.101.0",
+        "npm:netlify-cli@^24.8.1",
+        "npm:nodemon@^3.1.14"
       ]
     }
   }

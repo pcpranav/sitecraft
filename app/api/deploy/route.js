@@ -30,7 +30,7 @@ async function getUser(req) {
   return user;
 }
 
-export default async (req) => {
+async function handleRequest(req, ctx) {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: CORS });
 
@@ -63,6 +63,13 @@ export default async (req) => {
 
     if (!zipFile) {
       return new Response(JSON.stringify({ error: 'No zip file provided' }), {
+        status: 400,
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (zipFile.size > 10 * 1024 * 1024) {
+      return new Response(JSON.stringify({ error: 'Deploy zip exceeds 10MB limit. Decrease your assets size.' }), {
         status: 400,
         headers: { ...CORS, 'Content-Type': 'application/json' },
       });
@@ -125,3 +132,10 @@ export default async (req) => {
 };
 
 export const config = { path: '/api/deploy' };
+
+
+export async function GET(req, ctx) { return handleRequest(req, ctx); }
+export async function POST(req, ctx) { return handleRequest(req, ctx); }
+export async function PUT(req, ctx) { return handleRequest(req, ctx); }
+export async function DELETE(req, ctx) { return handleRequest(req, ctx); }
+export async function OPTIONS(req, ctx) { return handleRequest(req, ctx); }

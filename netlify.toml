@@ -1,33 +1,6 @@
 [build]
-  publish = "."
+  command = "npm run build"
+  publish = ".next"
 
-[functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild"
-  included_files = ["node_modules/@supabase/**"]
-
-[[redirects]]
-  from = "/api/ai"
-  to = "/.netlify/functions/claude-proxy"
-  status = 200
-
-[[redirects]]
-  from = "/api/deploy"
-  to = "/.netlify/functions/deploy"
-  status = 200
-
-[[redirects]]
-  from = "/api/projects/*"
-  to = "/.netlify/functions/projects"
-  status = 200
-
-[[redirects]]
-  from = "/api/projects"
-  to = "/.netlify/functions/projects"
-  status = 200
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Content-Type-Options = "nosniff"
-    Cache-Control = "public, max-age=0, must-revalidate"
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
