@@ -1,7 +1,10 @@
 // app/api/ai/route.js
-// AI proxy — Gemini, Groq (Llama) with conversation support
+// AI proxy — Gemini, Groq (Llama) with streaming support
 
 import { NextResponse } from 'next/server';
+
+// Extend serverless function timeout (Netlify/Vercel)
+export const maxDuration = 60;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -77,17 +80,16 @@ When the user asks for multiple pages:
 - You are having an ongoing conversation. The user may ask you to iterate, improve, or change the website.
 - When the user asks for changes, return the COMPLETE updated HTML — not just a diff or snippet.
 - Maintain all existing features and content unless the user explicitly asks to remove something.
-- If the user asks a question about the website (not a change request), still return the current HTML unchanged, but you can add an HTML comment at the top like <!-- Note: [your answer] --> before the <!DOCTYPE.
-- Actually no — ALWAYS return just HTML starting with <!DOCTYPE. If they ask a question, make your best judgment about what they want changed.
+- ALWAYS return just HTML starting with <!DOCTYPE. If they ask a question, make your best judgment about what they want changed.
 
 ## QUALITY CHECKLIST (apply to every response)
-✓ Semantic HTML5 (header, main, section, article, nav, footer)
-✓ Mobile responsive (flexbox/grid, media queries, fluid typography)
-✓ Accessible (alt text, aria labels, focus states, color contrast)
-✓ Fast (no unnecessary libraries, optimized images, minimal JS)
-✓ Beautiful (consistent design system, visual hierarchy, whitespace)
-✓ Interactive (hover effects, transitions, scroll animations, form validation)
-✓ Complete (navigation works, links have hrefs, forms have actions)`;
+- Semantic HTML5 (header, main, section, article, nav, footer)
+- Mobile responsive (flexbox/grid, media queries, fluid typography)
+- Accessible (alt text, aria labels, focus states, color contrast)
+- Fast (no unnecessary libraries, optimized images, minimal JS)
+- Beautiful (consistent design system, visual hierarchy, whitespace)
+- Interactive (hover effects, transitions, scroll animations, form validation)
+- Complete (navigation works, links have hrefs, forms have actions)`;
 
 // ── ROUTE HANDLER ─────────────────────────────────────────────────────────
 export async function POST(req) {
@@ -115,7 +117,6 @@ export async function POST(req) {
   }
 
   if (imageUrls.length > 0) {
-    // Only include non-base64 URLs in system prompt (base64 would be too large)
     const externalUrls = imageUrls.filter(u => !u.startsWith('data:'));
     const base64Count = imageUrls.length - externalUrls.length;
     if (externalUrls.length > 0) {
@@ -126,55 +127,70 @@ export async function POST(req) {
     }
   }
 
-  // Messages should already be structured from the client
   const finalMessages = messages || [];
-
   if (finalMessages.length === 0) {
     return NextResponse.json({ error: 'No messages provided' }, { status: 400, headers: CORS });
   }
 
+  // Use streaming to avoid Netlify function timeout
   try {
-    let result;
-    if (provider === 'groq') {
-      result = await callGroq({ model, system: systemPrompt, messages: finalMessages, max_tokens });
-    } else {
-      result = await callGemini({ model, system: systemPrompt, messages: finalMessages, max_tokens });
-    }
+    const streamHeaders = {
+      ...CORS,
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    };
 
-    // Parse the response
-    const rawText = (result.content?.[0]?.text || '').trim();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        const send = (data) => {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+        };
 
-    // Strip markdown code fences if the model wrapped it
-    let html = rawText;
-    const fenceMatch = html.match(/```(?:html)?\s*\n?([\s\S]*?)```/);
-    if (fenceMatch) html = fenceMatch[1].trim();
+        try {
+          let result;
+          if (provider === 'groq') {
+            result = await callGroq({ model, system: systemPrompt, messages: finalMessages, max_tokens });
+          } else {
+            result = await callGemini({ model, system: systemPrompt, messages: finalMessages, max_tokens });
+          }
 
-    // Find the HTML document in the response
-    const lower = html.toLowerCase();
-    const docIdx = lower.indexOf('<!doctype');
-    const htmlIdx = lower.indexOf('<html');
-    const startIdx = docIdx !== -1 ? docIdx : htmlIdx;
+          const rawText = (result.content?.[0]?.text || '').trim();
 
-    if (startIdx > 0) {
-      html = html.slice(startIdx);
-    }
+          // Strip markdown code fences
+          let html = rawText;
+          const fenceMatch = html.match(/```(?:html)?\s*\n?([\s\S]*?)```/);
+          if (fenceMatch) html = fenceMatch[1].trim();
 
-    // Trim anything after </html>
-    const endIdx = lower.lastIndexOf('</html>');
-    if (endIdx !== -1) {
-      html = html.slice(0, endIdx + 7);
-    }
+          // Find the HTML document
+          const lower = html.toLowerCase();
+          const docIdx = lower.indexOf('<!doctype');
+          const htmlIdx = lower.indexOf('<html');
+          const startIdx = docIdx !== -1 ? docIdx : htmlIdx;
+          if (startIdx > 0) html = html.slice(startIdx);
 
-    return NextResponse.json({
-      html,
-      tokens: result.usage?.output_tokens || 0,
-    }, { status: 200, headers: CORS });
+          // Trim after </html>
+          const endIdx = html.toLowerCase().lastIndexOf('</html>');
+          if (endIdx !== -1) html = html.slice(0, endIdx + 7);
+
+          send({ html, tokens: result.usage?.output_tokens || 0, done: true });
+        } catch (err) {
+          console.error(`[${provider}] Error:`, err.message);
+          send({ error: err.message || 'AI request failed', done: true });
+        }
+
+        controller.close();
+      }
+    });
+
+    return new Response(stream, { status: 200, headers: streamHeaders });
 
   } catch (err) {
-    console.error(`[${provider}] Error:`, err.message);
+    console.error(`[${provider}] Stream error:`, err.message);
     return NextResponse.json(
       { error: err.message || 'AI request failed' },
-      { status: err.status || 500, headers: CORS }
+      { status: 500, headers: CORS }
     );
   }
 }
@@ -207,9 +223,8 @@ async function callGemini({ model, system, messages, max_tokens }) {
   let data;
   try { data = await res.json(); } catch { throw new Error(`Gemini returned invalid JSON (${res.status})`); }
   if (!res.ok || data.error) {
-    const msg = data.error?.message || `Gemini error ${res.status}`;
     console.error('[Gemini] API error:', JSON.stringify(data.error || data, null, 2));
-    throw new Error(msg);
+    throw new Error(data.error?.message || `Gemini error ${res.status}`);
   }
 
   const candidate = data.candidates?.[0];
@@ -219,7 +234,6 @@ async function callGemini({ model, system, messages, max_tokens }) {
     throw new Error(reason ? `Blocked by safety filter: ${reason}` : 'No response from model — try rephrasing your prompt');
   }
 
-  // Check if blocked by safety filters
   if (candidate.finishReason === 'SAFETY' || candidate.finishReason === 'BLOCKED') {
     throw new Error('Response blocked by safety filter — try rephrasing your prompt');
   }
@@ -229,6 +243,7 @@ async function callGemini({ model, system, messages, max_tokens }) {
     console.error('[Gemini] Empty text. Candidate:', JSON.stringify(candidate, null, 2));
     throw new Error('Model returned empty response — try again');
   }
+
   return {
     content: [{ type: 'text', text }],
     usage: {

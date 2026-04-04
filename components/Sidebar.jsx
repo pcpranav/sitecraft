@@ -184,10 +184,39 @@ export default function Sidebar() {
         }),
       });
 
-      const responseText = await res.text();
-      let data;
-      try { data = JSON.parse(responseText); } catch { throw new Error('Unexpected response from server'); }
-      if (!res.ok) throw new Error(data.error || 'Generation failed');
+      if (!res.ok) {
+        // Try to parse error from response
+        const errText = await res.text();
+        let errMsg = 'Generation failed';
+        try { errMsg = JSON.parse(errText).error || errMsg; } catch {}
+        throw new Error(errMsg);
+      }
+
+      // Parse SSE stream response
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let data = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse SSE events from buffer
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              data = JSON.parse(line.slice(6));
+            } catch {}
+          }
+        }
+      }
+
+      if (!data) throw new Error('No response received from server');
+      if (data.error) throw new Error(data.error);
 
       const html = data.html || '';
 
