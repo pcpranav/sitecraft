@@ -21,18 +21,28 @@ const SYSTEM_PROMPT = `You are Webcraft, an elite web developer AI that builds s
 
 ## !!! CRITICAL: IMAGE STRATEGY — DO NOT IGNORE !!!
 - NEVER EVER use "source.unsplash.com". It is deprecated and broken. Using it results in failure.
-- ONLY EVER use "images.unsplash.com" with direct photo IDs from the list below.
-- !!! FORBIDDEN: DO NOT invent IDs. Only use IDs you find in this list or have verified. !!!
-- Use this curated "Golden ID" list:
+- ONLY use "images.unsplash.com" with direct photo IDs from the curated list below.
+- !!! FORBIDDEN: DO NOT invent or guess photo IDs. Only use IDs from this exact list. !!!
+- IMPORTANT: For EVERY <img> tag, you MUST also add an onerror fallback so broken images self-heal:
+  onerror="this.onerror=null;this.src='https://placehold.co/800x500/1a1a2e/ffffff?text=Image'"
+
+### Curated Photo ID List (ONLY use these):
   - Coffee/Cafe: 1511920135916-28150c44834f, 1541167760496-1628856ab772, 1495474472287-4d71bcdd2085, 1509042239860-f550ce710b93
   - SaaS/Tech/AI: 1460925895917-afdab827c52f, 1519389950473-47ba0277781c, 1551288049-bebda4e38f71, 1498050108023-c5249f4df085, 1451187580459-43490279c0fa
   - Food/Restaurant: 1517248135467-4c7ed9d4c442, 1504674900247-0877df9cc836, 1482049016688-2d3e1b311143, 1567620985-60c0910744d5
   - Travel/Nature/Agency: 1501785887741-f67a99596267, 1472213984083-20159d240dca, 1469474968028-56623f0214c8, 1506744038136-46273834b3fb
   - Fashion/Lifestyle: 1483985988307-2e1181792d0c, 1445204450317-2979201633e2, 1490481651871-ab68624d5e24
-- Format: <img src="https://images.unsplash.com/photo-<ID>?auto=format&fit=crop&q=80&w=1200" alt="..." crossorigin="anonymous" loading="eager">
-- !!! IMPORTANT: ALWAYS include crossorigin="anonymous" on all <img> tags to prevent browser ORB blocks.
-- If you need a unique category not listed, use: https://placehold.co/600x400/1a1a1a/ffffff?text=<Category>
-- Descriptive "alt" text is mandatory. Use loading="eager" specifically for the preview.
+  - People/Team: 1507003211169-0a1dd7228f2d, 1494790108377-be9c29b29330, 1438761681033-6461ffad8d80, 1472099645785-5658abf4ff4e
+  - Abstract/Gradient: 1557683316094-a31cdcf96c8c, 1558591710-4b4a1ae0f04d, 1579546929518-9e396f3cc809
+
+### Image Format (copy exactly):
+<img src="https://images.unsplash.com/photo-<ID>?auto=format&fit=crop&q=80&w=1200" alt="descriptive text" crossorigin="anonymous" loading="eager" onerror="this.onerror=null;this.src='https://placehold.co/800x500/1a1a2e/ffffff?text=Image'">
+
+### Rules:
+- ALWAYS include crossorigin="anonymous" on ALL <img> tags to prevent browser ORB blocks.
+- ALWAYS include the onerror fallback on ALL <img> tags.
+- If you need more than 5 images or a category not listed, use placehold.co: https://placehold.co/800x500/<hex_bg>/<hex_text>?text=<Label>
+- Descriptive "alt" text is mandatory. Use loading="eager" for above-the-fold images.
 
 ## OUTPUT FORMAT
 - Output ONLY valid HTML. No markdown, no code fences, no explanation, no commentary.
@@ -75,6 +85,21 @@ const SYSTEM_PROMPT = `You are Webcraft, an elite web developer AI that builds s
 - Error-free console (no broken links, valid CSS syntax).
 - Professional, non-generic copy (no Lorem Ipsum).`;
 
+// Compact system prompt for Groq (strict TPM limits — keep under 2000 tokens)
+const SYSTEM_PROMPT_COMPACT = `You are Webcraft, an AI web developer. Build complete, responsive websites from descriptions.
+
+OUTPUT: Only valid HTML. Start with <!DOCTYPE html>, end with </html>. All CSS in <style> in <head>, all JS in <script> before </body>. No markdown, no code fences.
+
+IMAGES: NEVER use source.unsplash.com. Use images.unsplash.com with these IDs:
+- Tech: 1460925895917-afdab827c52f, 1519389950473-47ba0277781c, 1551288049-bebda4e38f71
+- Food: 1517248135467-4c7ed9d4c442, 1504674900247-0877df9cc836
+- Nature: 1501785887741-f67a99596267, 1472213984083-20159d240dca
+- People: 1507003211169-0a1dd7228f2d, 1494790108377-be9c29b29330
+Format: <img src="https://images.unsplash.com/photo-<ID>?auto=format&fit=crop&q=80&w=1200" alt="..." crossorigin="anonymous" loading="eager" onerror="this.onerror=null;this.src='https://placehold.co/800x500/1a1a2e/ffffff?text=Image'">
+For extra images use: https://placehold.co/800x500/<hex>/<hex>?text=<Label>
+
+DESIGN: Mobile-first, responsive, modern. Include viewport meta tag. Use system fonts or Google Fonts. Professional copy (no Lorem Ipsum).`;
+
 // ── ROUTE HANDLER ─────────────────────────────────────────────────────────
 export async function POST(req) {
   let body;
@@ -94,22 +119,26 @@ export async function POST(req) {
   } = body;
 
   // Build system prompt with feature context
-  let systemPrompt = SYSTEM_PROMPT;
+  // Use condensed prompt for Groq (strict TPM limits)
+  let systemPrompt = provider === 'groq' ? SYSTEM_PROMPT_COMPACT : SYSTEM_PROMPT;
 
   if (features.length > 0) {
-    systemPrompt += `\n\n## ACTIVE FEATURES FOR THIS PROJECT\nThe user has enabled these features — incorporate them into the website:\n${features.map(f => `- ${f}`).join('\n')}`;
+    systemPrompt += `\n\n## ACTIVE FEATURES\nIncorporate: ${features.join(', ')}`;
   }
 
   if (imageUrls.length > 0) {
     const externalUrls = imageUrls.filter(u => !u.startsWith('data:'));
     const base64Count = imageUrls.length - externalUrls.length;
     if (externalUrls.length > 0) {
-      systemPrompt += `\n\n## USER-PROVIDED IMAGES\nUse these images in the website where appropriate:\n${externalUrls.map((url, i) => `- Image ${i + 1}: ${url}`).join('\n')}`;
+      systemPrompt += `\n\n## USER IMAGES\n${externalUrls.map((url, i) => `- Image ${i + 1}: ${url}`).join('\n')}`;
     }
     if (base64Count > 0) {
-      systemPrompt += `\n\nThe user has also uploaded ${base64Count} image(s). Use placeholder Unsplash images in their place with similar dimensions.`;
+      systemPrompt += `\nUser uploaded ${base64Count} image(s) — use Unsplash placeholders.`;
     }
   }
+
+  // Groq has strict token limits, reduce max_tokens
+  const effectiveMaxTokens = provider === 'groq' ? Math.min(max_tokens, 4000) : max_tokens;
 
   const finalMessages = messages || [];
   if (finalMessages.length === 0) {
@@ -135,9 +164,9 @@ export async function POST(req) {
         try {
           let result;
           if (provider === 'groq') {
-            result = await callGroq({ model, system: systemPrompt, messages: finalMessages, max_tokens });
+            result = await callGroq({ model, system: systemPrompt, messages: finalMessages, max_tokens: effectiveMaxTokens });
           } else {
-            result = await callGemini({ model, system: systemPrompt, messages: finalMessages, max_tokens });
+            result = await callGemini({ model, system: systemPrompt, messages: finalMessages, max_tokens: effectiveMaxTokens });
           }
 
           const rawText = (result.content?.[0]?.text || '').trim();

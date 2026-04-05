@@ -135,6 +135,8 @@ export default function Sidebar() {
     const text = (messageText || input).trim();
     if (!text || loading) return;
     setInput('');
+    // Auto-close sidebar on mobile so user sees the preview
+    if (window.innerWidth <= 768) setSidebarOpen(false);
 
     const isFirst = chatMessages.length === 0;
     if (isFirst) setDesc(text);
@@ -277,10 +279,12 @@ export default function Sidebar() {
     setCss('');
     setJs('');
     setDesc('');
+    setHistory([]);
     setFeatures([]);
     setImageUrls([]);
     setInput('');
     setProjectId(null);
+    sessionStorage.removeItem('WEBCRAFT_PROJECT');
   };
 
   return (
@@ -365,6 +369,21 @@ export default function Sidebar() {
                     </div>
                     <span className="chat-loading-text">{loadingMsg}</span>
                   </div>
+                </div>
+              )}
+
+              {/* Quick action chips after generation */}
+              {!loading && hasConversation && currentHtml && (
+                <div className="quick-actions">
+                  <button className="quick-action-chip" onClick={() => sendMessage('Add more high-quality images throughout the website. Use different images for each section.')}>
+                    + Add more images
+                  </button>
+                  <button className="quick-action-chip" onClick={() => sendMessage('Replace all placeholder or broken images with working, relevant images. Make sure every image loads correctly.')}>
+                    Fix images
+                  </button>
+                  <button className="quick-action-chip" onClick={() => sendMessage('Make the design more polished - improve spacing, typography, and color consistency')}>
+                    Polish design
+                  </button>
                 </div>
               )}
 

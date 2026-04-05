@@ -1,17 +1,18 @@
 "use client";
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useAppContext } from '@/context/AppContext';
 
 export default function PreviewFrame() {
   const {
     currentHtml, pages, css, js, currentFile, view,
-    setPages, setCss, setJs,
+    setPages, setCss, setJs, setCurrentHtml,
   } = useAppContext();
   const iframeRef = useRef(null);
+  const [imageStatus, setImageStatus] = useState(null); // { total, loaded, failed, failedSrcs }
+  const [showImagePanel, setShowImagePanel] = useState(false);
 
   const hasContent = !!currentHtml || Object.keys(pages).length > 0;
 
-  // Get the HTML to display
   const getDisplayHtml = () => {
     if (currentHtml) return currentHtml;
     const htmlContent = pages[currentFile] || '';
@@ -39,7 +40,74 @@ export default function PreviewFrame() {
 
   const displayHtml = getDisplayHtml();
 
-  // Empty state — handled by sidebar chat now, just show a subtle message
+  // Check image load status after iframe renders
+  const checkImages = useCallback(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    try {
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!doc) return;
+      const imgs = doc.querySelectorAll('img');
+      if (imgs.length === 0) {
+        setImageStatus(null);
+        setShowImagePanel(false);
+        return;
+      }
+      let loaded = 0, failed = 0;
+      const failedSrcs = [];
+      imgs.forEach(img => {
+        if (img.complete) {
+          if (img.naturalWidth > 0) loaded++;
+          else { failed++; failedSrcs.push(img.src); }
+        }
+      });
+      const pending = imgs.length - loaded - failed;
+      setImageStatus({ total: imgs.length, loaded, failed, pending, failedSrcs });
+      if (failed > 0) setShowImagePanel(true);
+    } catch (e) {
+      // Cross-origin restrictions
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!displayHtml || view !== 'preview') return;
+    // Reset status when HTML changes
+    setImageStatus(null);
+    setShowImagePanel(false);
+    // Check after iframe loads
+    const timer = setTimeout(checkImages, 2000);
+    const timer2 = setTimeout(checkImages, 5000);
+    return () => { clearTimeout(timer); clearTimeout(timer2); };
+  }, [displayHtml, view, checkImages]);
+
+  const handleIframeLoad = () => {
+    setTimeout(checkImages, 1000);
+  };
+
+  // Replace failed images with working placeholders
+  const fixFailedImages = () => {
+    if (!imageStatus?.failedSrcs?.length) return;
+    let html = currentHtml || pages[currentFile] || '';
+    imageStatus.failedSrcs.forEach((src, i) => {
+      // Extract the part after the domain to identify in source
+      const urlObj = (() => { try { return new URL(src); } catch { return null; } })();
+      if (!urlObj) return;
+      const searchStr = urlObj.pathname + urlObj.search;
+      // Replace with a placehold.co fallback
+      const color = ['3b82f6', '8b5cf6', '10b981', 'eab308', 'ef4444'][i % 5];
+      const replacement = `https://placehold.co/800x500/${color}/ffffff?text=Image+${i + 1}`;
+      html = html.replace(new RegExp(escapeRegExp(src), 'g'), replacement);
+      // Also try matching just the path portion in case src was relative
+      if (searchStr) {
+        html = html.replace(new RegExp(escapeRegExp(searchStr), 'g'), replacement);
+      }
+    });
+    setCurrentHtml(html);
+    setPages(prev => ({ ...prev, 'index.html': html }));
+    setImageStatus(null);
+    setShowImagePanel(false);
+  };
+
   if (!hasContent && view === 'preview') {
     return (
       <div className="preview">
@@ -61,14 +129,62 @@ export default function PreviewFrame() {
   return (
     <div className="preview">
       {view === 'preview' ? (
-        <iframe
-          // Use srcdoc for improved reliability and security context (fixes Chrome ORB blocks)
-          srcDoc={displayHtml}
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-          referrerPolicy="no-referrer"
-          style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
-          title="Preview"
-        />
+        <>
+          <iframe
+            ref={iframeRef}
+            srcDoc={displayHtml}
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+            referrerPolicy="no-referrer"
+            style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
+            title="Preview"
+            onLoad={handleIframeLoad}
+          />
+          {/* Image status bar */}
+          {imageStatus && imageStatus.total > 0 && (
+            <div className="image-status-bar">
+              <button
+                className="image-status-toggle"
+                onClick={() => setShowImagePanel(!showImagePanel)}
+              >
+                <span className={`image-status-dot ${imageStatus.failed > 0 ? 'warn' : 'ok'}`}></span>
+                <span>
+                  Images: {imageStatus.loaded}/{imageStatus.total} loaded
+                  {imageStatus.failed > 0 && ` · ${imageStatus.failed} failed`}
+                  {imageStatus.pending > 0 && ` · ${imageStatus.pending} loading`}
+                </span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                  style={{ transform: showImagePanel ? 'rotate(180deg)' : '', transition: 'transform .15s' }}>
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              {showImagePanel && (
+                <div className="image-status-panel">
+                  {imageStatus.failed > 0 && (
+                    <>
+                      <p className="image-status-desc">
+                        {imageStatus.failed} image{imageStatus.failed > 1 ? 's' : ''} failed to load.
+                      </p>
+                      <div className="image-status-actions">
+                        <button className="img-action-btn" onClick={fixFailedImages}>
+                          Replace failed with placeholders
+                        </button>
+                        <button className="img-action-btn" onClick={() => { checkImages(); }}>
+                          Re-check
+                        </button>
+                        <button className="img-action-btn secondary" onClick={() => setShowImagePanel(false)}>
+                          Dismiss
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {imageStatus.failed === 0 && (
+                    <p className="image-status-desc ok">All {imageStatus.total} images loaded successfully.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </>
       ) : (
         <textarea
           className="code-editor"
@@ -85,4 +201,8 @@ export default function PreviewFrame() {
       )}
     </div>
   );
+}
+
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

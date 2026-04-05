@@ -75,7 +75,9 @@ body {
   font-size: 13px;
   line-height: 1.5;
   transition: background var(--transition), color var(--transition);
-  margin: 0; padding: 0;
+  margin: 0;
+  padding: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 /* Studio full-height layout */
@@ -458,7 +460,7 @@ textarea::placeholder, input::placeholder { color: var(--muted); }
 .callout-warn { background: rgba(251,191,36,.06); border: 1px solid rgba(251,191,36,.2); color: var(--amber); }
 
 /* ── PREVIEW PANE ── */
-.preview { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+.preview { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); position: relative; }
 .toolbar {
   display: flex; align-items: center; gap: 8px;
   padding: 0 1rem; height: 44px;
@@ -836,6 +838,18 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   font-family: var(--font-mono);
 }
 .ud-divider { height: 1px; background: var(--border); margin: 4px 2px; }
+.ud-proj-row {
+  display: flex; align-items: center; gap: 0;
+}
+.ud-proj-row .ud-proj-item { flex: 1; min-width: 0; }
+.ud-proj-delete {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: var(--r);
+  border: none; background: none; cursor: pointer;
+  color: var(--muted); flex-shrink: 0; transition: all var(--transition);
+}
+.ud-proj-delete:hover { background: rgba(248,113,113,.08); color: var(--red); }
+.ud-proj-delete.confirm { background: rgba(248,113,113,.12); color: var(--red); }
 @keyframes fadeDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ── SAVED PROJECTS ── */
@@ -1378,6 +1392,24 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   animation: pulse 2s ease-in-out infinite;
 }
 
+/* ── QUICK ACTION CHIPS ── */
+.quick-actions {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 4px 12px 8px;
+}
+.quick-action-chip {
+  padding: 5px 10px; border-radius: 16px;
+  font-size: 11px; font-family: var(--font-sans);
+  border: 1px solid var(--border); background: var(--card);
+  color: var(--secondary); cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.quick-action-chip:hover {
+  background: var(--raise); border-color: var(--border2);
+  color: var(--body);
+}
+
 /* ── CHAT FEATURES BAR ── */
 .chat-features-bar {
   border-top: 1px solid var(--border);
@@ -1449,6 +1481,7 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   border-top: 1px solid var(--border);
   padding: 12px; flex-shrink: 0;
   background: var(--surface);
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
 }
 .chat-input-row {
   display: flex; align-items: flex-end; gap: 8px;
@@ -1548,6 +1581,45 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   font-size: 12px; color: var(--muted);
 }
 
+/* ── IMAGE STATUS BAR ── */
+.image-status-bar {
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+  z-index: 10; min-width: 240px; max-width: 420px;
+}
+.image-status-toggle {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 20px;
+  background: var(--panel); border: 1px solid var(--border);
+  color: var(--secondary); font-size: 11px; cursor: pointer;
+  box-shadow: var(--shadow); font-family: var(--font-sans);
+  width: 100%; transition: all var(--transition);
+}
+.image-status-toggle:hover { background: var(--card); }
+.image-status-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
+.image-status-dot.ok { background: var(--green); }
+.image-status-dot.warn { background: var(--amber); }
+.image-status-panel {
+  margin-top: 6px; padding: 10px 12px; border-radius: var(--rl);
+  background: var(--panel); border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg); animation: fadeDown .15s ease;
+}
+.image-status-desc {
+  font-size: 11px; color: var(--muted); margin-bottom: 8px;
+}
+.image-status-desc.ok { color: var(--green); margin-bottom: 0; }
+.image-status-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.img-action-btn {
+  padding: 5px 10px; border-radius: var(--r);
+  font-size: 11px; font-family: var(--font-sans); cursor: pointer;
+  border: 1px solid var(--border); background: var(--card);
+  color: var(--body); transition: all var(--transition);
+}
+.img-action-btn:hover { background: var(--raise); border-color: var(--border2); }
+.img-action-btn.secondary { background: transparent; color: var(--muted); border-color: transparent; }
+.img-action-btn.secondary:hover { color: var(--body); }
+
 /* ── SIDEBAR TOGGLE (hidden on desktop) ── */
 .sidebar-toggle {
   display: none;
@@ -1593,7 +1665,7 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   .user-pill-name { display: none; }
   .user-pill { padding: 3px; border-radius: 50%; gap: 0; }
   .user-pill svg { display: none; }
-  .user-dropdown { right: -8px; min-width: 220px; }
+  .user-dropdown { right: -8px; min-width: 220px; max-width: calc(100vw - 32px); }
 
   /* Welcome heading — smaller on mobile */
   .empty-prompt-wrap h2 { font-size: 22px; padding: 0 8px; }
@@ -1622,6 +1694,25 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   .starter-prompt { padding: 10px 12px; }
   .feature-pill { padding: 6px 10px; font-size: 11px; }
   .chat-msg-bubble { max-width: 90%; }
+
+  /* Quick actions — scroll horizontally on mobile */
+  .quick-actions { flex-wrap: nowrap; overflow-x: auto; padding: 4px 12px 8px; -webkit-overflow-scrolling: touch; }
+  .quick-action-chip { flex-shrink: 0; }
+
+  /* Image status bar — responsive width */
+  .image-status-bar { min-width: 200px; max-width: calc(100vw - 32px); left: 50%; }
+
+  /* Image strip — show remove always on touch */
+  .image-thumb-remove { opacity: 1; }
+
+  /* Chat input — touch-friendly */
+  .chat-input-row { padding: 8px 10px 8px 6px; }
+  .chat-action-btn { width: 36px; height: 36px; }
+  .chat-send-btn { width: 36px; height: 36px; }
+  .chat-textarea { font-size: 16px; /* prevent iOS zoom */ min-height: 28px; }
+
+  /* Model dropdown — prevent overflow */
+  .model-dropdown-chat { min-width: 200px; max-width: calc(100vw - 48px); }
 
   /* Workspace fills screen */
   .workspace { position: relative; }
@@ -1653,13 +1744,16 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
 
   /* Modal — full width on mobile */
   .modal { width: 100%; border-radius: var(--rl); margin: 0 12px; }
+
+  /* Features dropdown — full-width on mobile */
+  .chat-features-dropdown { max-width: calc(100vw - 48px); }
 }
 
 /* ══════════════════════════════════════════════════════════
    RESPONSIVE — SMALL MOBILE (≤ 480px)
    ══════════════════════════════════════════════════════════ */
 @media (max-width: 480px) {
-  .header { gap: 6px; padding: 0 8px; }
+  .header { gap: 4px; padding: 0 8px; }
   .hdr-btn { padding: 4px 8px; font-size: 11px; }
   .theme-btn { width: 28px; height: 28px; font-size: 12px; }
   .logo-text { font-size: 12px; }
@@ -1669,6 +1763,7 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   .hero-desc { font-size: 13px; }
   .hero-eyebrow { font-size: 9px; }
 
+  /* Sidebar — full width on small phones */
   .sidebar { width: 100vw; }
 
   /* Profile dropdown — near full width */
@@ -1684,5 +1779,26 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   .starter-prompt { padding: 8px 10px; }
   .starter-label { font-size: 11px; }
   .starter-desc { font-size: 10px; }
-  .chat-textarea { font-size: 14px; /* prevent iOS zoom */ }
+  .chat-textarea { font-size: 16px; /* prevent iOS zoom */ }
+
+  /* Quick actions — compact */
+  .quick-action-chip { font-size: 10px; padding: 4px 8px; }
+
+  /* Image status — compact */
+  .image-status-bar { bottom: 8px; min-width: 180px; }
+  .image-status-toggle { font-size: 10px; padding: 5px 10px; }
+  .image-status-panel { padding: 8px 10px; }
+  .image-status-actions { gap: 4px; }
+  .img-action-btn { font-size: 10px; padding: 4px 8px; }
+
+  /* Chat input — tighter on tiny screens */
+  .chat-input-area { padding: 8px; }
+  .chat-bottom-bar { margin-top: 6px; }
+  .model-select-btn { font-size: 10px; padding: 3px 8px; }
+
+  /* Code toggle — hide text, just show icon */
+  .code-toggle { font-size: 10px; }
+
+  /* Project delete btn — always visible on touch */
+  .ud-proj-delete { opacity: 1; }
 }
