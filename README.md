@@ -6,9 +6,8 @@ An AI-powered website builder. Describe any idea and get a complete, mobile-resp
 - AI generation via Gemini 2.5 / 3 Flash and Groq Llama 3.3
 - Conversational refinement with chat history
 - Mobile-first generated sites (touch targets, viewport meta, responsive layouts enforced)
-- One-click Vercel deploy
 - Cloud project save (Supabase) with delete + history clear
-- ZIP export
+- ZIP export (drag into Vercel/Netlify/anywhere static)
 
 ## Deployment (Vercel)
 1. Push this repo to GitHub.

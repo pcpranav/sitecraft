@@ -95,7 +95,7 @@ export default function LandingPage() {
             { icon: '⚡', title: 'Instant generation', desc: 'Full website in seconds using AI.' },
             { icon: '🎨', title: 'Fully styled', desc: 'Responsive CSS, mobile-ready.' },
             { icon: '☁️', title: 'Cloud sync', desc: 'Save and access anywhere.' },
-            { icon: '📦', title: 'Export & deploy', desc: 'Download as zip or go live.' },
+            { icon: '📦', title: 'Export anywhere', desc: 'Download as a ZIP and host wherever.' },
           ].map(f => (
             <div className="feature-card" key={f.title}>
               <div className="feature-icon">{f.icon}</div>

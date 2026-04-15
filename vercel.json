@@ -4,8 +4,7 @@
   "buildCommand": "next build",
   "installCommand": "npm install",
   "functions": {
-    "app/api/ai/route.js": { "maxDuration": 60 },
-    "app/api/deploy/route.js": { "maxDuration": 60 }
+    "app/api/ai/route.js": { "maxDuration": 60 }
   },
   "headers": [
     {
