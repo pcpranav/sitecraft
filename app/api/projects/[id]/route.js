@@ -10,10 +10,12 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
 };
 
+const MAX_PROJECT_BYTES = 2 * 1024 * 1024;
+
 function getSupabase() {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error('Supabase not configured');
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !key) throw new Error('Supabase not configured (SUPABASE_SERVICE_KEY required)');
   return createClient(url, key);
 }
 
@@ -68,6 +70,12 @@ export async function PUT(req, { params }) {
     if (body.is_deployed !== undefined) updates.is_deployed = body.is_deployed;
     if (body.deploy_url !== undefined) updates.deploy_url = body.deploy_url;
     if (body.thumbnail !== undefined) updates.thumbnail = body.thumbnail;
+
+    try {
+      if (Buffer.byteLength(JSON.stringify(updates), 'utf8') > MAX_PROJECT_BYTES) {
+        return NextResponse.json({ error: 'Update too large (>2MB).' }, { status: 413, headers: CORS });
+      }
+    } catch {}
 
     const supabase = getSupabase();
     const { data, error } = await supabase

@@ -10,11 +10,17 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
+const MAX_PROJECT_BYTES = 2 * 1024 * 1024; // 2MB serialized payload
+
 function getSupabase() {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error('Supabase not configured');
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !key) throw new Error('Supabase not configured (SUPABASE_SERVICE_KEY required)');
   return createClient(url, key);
+}
+
+function payloadSize(obj) {
+  try { return Buffer.byteLength(JSON.stringify(obj), 'utf8'); } catch { return 0; }
 }
 
 async function getUser(req) {
@@ -57,6 +63,11 @@ export async function POST(req) {
 
     const body = await req.json();
     const { name, description, pages, shared_css, shared_js, history } = body;
+
+    if (payloadSize({ pages, shared_css, shared_js, history }) > MAX_PROJECT_BYTES) {
+      return NextResponse.json({ error: 'Project too large (>2MB). Trim history or images.' }, { status: 413, headers: CORS });
+    }
+
     const supabase = getSupabase();
 
     const { data, error } = await supabase

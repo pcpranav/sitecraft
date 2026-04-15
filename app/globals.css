@@ -1705,11 +1705,21 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   /* Image strip — show remove always on touch */
   .image-thumb-remove { opacity: 1; }
 
-  /* Chat input — touch-friendly */
+  /* Chat input — touch-friendly (≥44px targets) */
   .chat-input-row { padding: 8px 10px 8px 6px; }
-  .chat-action-btn { width: 36px; height: 36px; }
-  .chat-send-btn { width: 36px; height: 36px; }
-  .chat-textarea { font-size: 16px; /* prevent iOS zoom */ min-height: 28px; }
+  .chat-action-btn { width: 44px; height: 44px; }
+  .chat-send-btn { width: 44px; height: 44px; }
+  .chat-textarea { font-size: 16px; /* prevent iOS zoom */ min-height: 32px; }
+  .sidebar-toggle { width: 44px; height: 44px; }
+  .theme-btn { min-width: 44px; min-height: 44px; }
+  .hdr-btn { min-height: 40px; padding-left: 12px; padding-right: 12px; }
+  .user-pill { min-width: 44px; min-height: 44px; }
+  .ud-item { min-height: 44px; }
+  .quick-action-chip { min-height: 36px; padding: 8px 12px; }
+  .feature-pill { min-height: 36px; }
+  .starter-prompt { min-height: 56px; }
+  /* Prevent any layout overflow on mobile */
+  html, body { overflow-x: hidden; max-width: 100%; }
 
   /* Model dropdown — prevent overflow */
   .model-dropdown-chat { min-width: 200px; max-width: calc(100vw - 48px); }

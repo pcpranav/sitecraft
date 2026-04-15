@@ -2,9 +2,54 @@
 // AI proxy — Gemini, Groq (Llama) with streaming support
 
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-// Extend serverless function timeout (Netlify/Vercel)
+// Extend serverless function timeout (Vercel)
 export const maxDuration = 60;
+
+// In-memory anon rate-limit fallback (per cold-start instance).
+const _anonHits = new Map();
+function checkAnonRate(ip) {
+  const limit = parseInt(process.env.AI_ANON_RATE_LIMIT_PER_HOUR || '5', 10);
+  const now = Date.now();
+  const rec = _anonHits.get(ip);
+  if (!rec || now - rec.start > 3600_000) {
+    _anonHits.set(ip, { count: 1, start: now });
+    return { ok: true };
+  }
+  rec.count++;
+  if (rec.count > limit) return { ok: false, retryAfter: Math.ceil((rec.start + 3600_000 - now) / 1000) };
+  return { ok: true };
+}
+
+async function checkUserRate(userId) {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !key) return { ok: true }; // fail-open if not configured
+  const limit = parseInt(process.env.AI_RATE_LIMIT_PER_HOUR || '60', 10);
+  try {
+    const sb = createClient(url, key);
+    const { data, error } = await sb.rpc('increment_rate_limit', { p_user_id: userId, p_window_seconds: 3600 });
+    if (error) return { ok: true };
+    if ((data ?? 0) > limit) return { ok: false, retryAfter: 3600 };
+    return { ok: true };
+  } catch {
+    return { ok: true };
+  }
+}
+
+async function resolveUser(req) {
+  const auth = req.headers.get('authorization');
+  if (!auth?.startsWith('Bearer ')) return null;
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  try {
+    const sb = createClient(url, key);
+    const { data: { user } } = await sb.auth.getUser(auth.slice(7));
+    return user || null;
+  } catch { return null; }
+}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -51,15 +96,21 @@ const SYSTEM_PROMPT = `You are Webcraft, an elite web developer AI that builds s
 - Include ALL JavaScript in a <script> tag before </body>.
 - Do not output anything before <!DOCTYPE or after </html>.
 
-## MOBILE-FIRST & RESPONSIVE DESIGN
-- ALWAYS design mobile-first. Default CSS should be for mobile, with media queries for desktop.
-- Mandate: <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-- Media Queries: Use @media (max-width: 768px) for tablets and @media (max-width: 480px) for tiny screens.
-- Touch Targets: Buttons, links, and inputs MUST have a minimum clickable area of 48x48px on mobile.
-- Fluid Layouts: Use percentage widths or flex/grid. Avoid fixed px widths.
-- Typography: Use responsive font sizes (e.g., clamp(1rem, 2vw + 1rem, 1.5rem)) or media query overrides.
-- Sticky Elements: Use position: sticky for navbars but ensure they don't block too much viewport on mobile.
-- Form Elements: Ensure inputs don't zoom in on iPhone (use font-size: 16px minimum).
+## MOBILE-FIRST & RESPONSIVE DESIGN — NON-NEGOTIABLE
+The generated site MUST be flawless on a 360px-wide phone. This is a hard requirement; failing it is failing the task.
+- Mandate viewport meta: <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  (Do NOT disable user scaling — accessibility requires user-scalable=yes.)
+- Default CSS is mobile (≤480px). Layer up via @media (min-width: 768px) and (min-width: 1024px).
+- No horizontal scroll at any width: html,body { overflow-x: hidden; max-width: 100%; }
+- Every interactive element (button, link, input, icon-button) MUST be ≥44×44px on mobile.
+- All images: max-width: 100%; height: auto; display: block;
+- All grids/columns collapse to a single column under 640px. Avoid fixed px widths >320.
+- Typography fluid via clamp(): hero ≥ clamp(2rem, 6vw, 4rem); body 16px minimum.
+- Inputs: font-size ≥ 16px to prevent iOS zoom; padding ≥ 12px.
+- Tables wrap in <div style="overflow-x:auto"> on mobile.
+- Navigation: collapse to hamburger / off-canvas under 768px. Sticky headers ≤ 56px tall on mobile.
+- Use safe-area-inset-* padding for fixed bars (notch support).
+- Test mentally at 320px, 375px, 414px before outputting.
 
 ## DESIGN PRINCIPLES
 - Create visually stunning, modern designs (glassmorphism, soft shadows, vibrant gradients).
@@ -98,7 +149,7 @@ IMAGES: NEVER use source.unsplash.com. Use images.unsplash.com with these IDs:
 Format: <img src="https://images.unsplash.com/photo-<ID>?auto=format&fit=crop&q=80&w=1200" alt="..." crossorigin="anonymous" loading="eager" onerror="this.onerror=null;this.src='https://placehold.co/800x500/1a1a2e/ffffff?text=Image'">
 For extra images use: https://placehold.co/800x500/<hex>/<hex>?text=<Label>
 
-DESIGN: Mobile-first, responsive, modern. Include viewport meta tag. Use system fonts or Google Fonts. Professional copy (no Lorem Ipsum).`;
+DESIGN: Mobile-first, responsive, modern. MUST work on 360px phones — no horizontal scroll, all buttons ≥44px, single-column under 640px, inputs 16px+ font, images max-width:100%. Viewport: <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">. Use system or Google Fonts. Professional copy (no Lorem Ipsum).`;
 
 // ── ROUTE HANDLER ─────────────────────────────────────────────────────────
 export async function POST(req) {
@@ -109,6 +160,17 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400, headers: CORS });
   }
 
+  // Rate limit
+  const user = await resolveUser(req);
+  if (user) {
+    const r = await checkUserRate(user.id);
+    if (!r.ok) return NextResponse.json({ error: 'Rate limit exceeded. Try again in an hour.' }, { status: 429, headers: { ...CORS, 'Retry-After': String(r.retryAfter) } });
+  } else {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'anon';
+    const r = checkAnonRate(ip);
+    if (!r.ok) return NextResponse.json({ error: 'Anonymous limit reached. Sign in for more generations.' }, { status: 429, headers: { ...CORS, 'Retry-After': String(r.retryAfter) } });
+  }
+
   const {
     provider = 'gemini',
     model = 'gemini-2.5-flash',
@@ -117,6 +179,11 @@ export async function POST(req) {
     features = [],
     imageUrls = [],
   } = body;
+
+  // Cap message volume to prevent abuse.
+  if (Array.isArray(messages) && messages.length > 50) {
+    return NextResponse.json({ error: 'Conversation too long. Start a new chat.' }, { status: 400, headers: CORS });
+  }
 
   // Build system prompt with feature context
   // Use condensed prompt for Groq (strict TPM limits)
@@ -171,12 +238,12 @@ export async function POST(req) {
 
           const rawText = (result.content?.[0]?.text || '').trim();
 
-          // Strip markdown code fences
+          // Strip markdown code fences (any language tag, or none).
           let html = rawText;
-          const fenceMatch = html.match(/```(?:html)?\s*\n?([\s\S]*?)```/);
+          const fenceMatch = html.match(/```[a-zA-Z]*\s*\n?([\s\S]*?)\n?```/);
           if (fenceMatch) html = fenceMatch[1].trim();
 
-          // Find the HTML document
+          // Find the HTML document — prefer doctype, fall back to <html, then leave as-is.
           const lower = html.toLowerCase();
           const docIdx = lower.indexOf('<!doctype');
           const htmlIdx = lower.indexOf('<html');
@@ -186,6 +253,10 @@ export async function POST(req) {
           // Trim after </html>
           const endIdx = html.toLowerCase().lastIndexOf('</html>');
           if (endIdx !== -1) html = html.slice(0, endIdx + 7);
+
+          if (!html || (!lower.includes('<!doctype') && !lower.includes('<html'))) {
+            throw new Error('Model returned non-HTML output. Try rephrasing your prompt.');
+          }
 
           send({ html, tokens: result.usage?.output_tokens || 0, done: true });
         } catch (err) {

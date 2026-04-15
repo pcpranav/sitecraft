@@ -85,12 +85,15 @@ export default function Sidebar() {
   };
 
   const handleImageUpload = (e) => {
+    const MAX = 4 * 1024 * 1024; // 4MB per image
     const files = Array.from(e.target.files);
-    files.forEach(file => {
+    const oversized = files.filter(f => f.size > MAX);
+    if (oversized.length) {
+      alert(`Skipped ${oversized.length} image(s) over 4MB.`);
+    }
+    files.filter(f => f.size <= MAX).forEach(file => {
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        setImageUrls(prev => [...prev, ev.target.result]);
-      };
+      reader.onload = (ev) => setImageUrls(prev => [...prev, ev.target.result]);
       reader.readAsDataURL(file);
     });
     e.target.value = '';
@@ -177,48 +180,74 @@ export default function Sidebar() {
         }
       }
 
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: apiMessages,
-          model: selectedModel,
-          provider,
-          features: features.map(f => FEATURE_OPTIONS.find(o => o.id === f)?.label || f),
-          imageUrls,
-        }),
-      });
+      // Auth header (if signed in) so server can rate-limit per user.
+      const headers = { 'Content-Type': 'application/json' };
+      try {
+        if (supabaseClient) {
+          const { data: { session } } = await supabaseClient.auth.getSession();
+          if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+      } catch {}
+
+      // Abort after 90s — server's hard cap is 60s; this guards against hangs.
+      const ctrl = new AbortController();
+      const abortTimer = setTimeout(() => ctrl.abort(), 90_000);
+
+      let res;
+      try {
+        res = await fetch('/api/ai', {
+          method: 'POST',
+          headers,
+          signal: ctrl.signal,
+          body: JSON.stringify({
+            messages: apiMessages,
+            model: selectedModel,
+            provider,
+            features: features.map(f => FEATURE_OPTIONS.find(o => o.id === f)?.label || f),
+            imageUrls,
+          }),
+        });
+      } catch (err) {
+        if (err.name === 'AbortError') throw new Error('Generation timed out. Please try again.');
+        throw err;
+      } finally {
+        clearTimeout(abortTimer);
+      }
 
       if (!res.ok) {
-        // Try to parse error from response
         const errText = await res.text();
-        let errMsg = 'Generation failed';
+        let errMsg = `Generation failed (${res.status})`;
         try { errMsg = JSON.parse(errText).error || errMsg; } catch {}
         throw new Error(errMsg);
       }
 
-      // Parse SSE stream response
+      // Parse SSE stream response. Last data: line wins.
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
       let data = null;
 
+      const consume = (chunk) => {
+        buffer += chunk;
+        // SSE messages end with a blank line; split on that.
+        const events = buffer.split(/\r?\n\r?\n/);
+        buffer = events.pop() || '';
+        for (const ev of events) {
+          for (const line of ev.split(/\r?\n/)) {
+            if (line.startsWith('data: ')) {
+              try { data = JSON.parse(line.slice(6)); } catch {}
+            }
+          }
+        }
+      };
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        // Parse SSE events from buffer
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              data = JSON.parse(line.slice(6));
-            } catch {}
-          }
-        }
+        consume(decoder.decode(value, { stream: true }));
       }
+      // Flush any final event without trailing blank line.
+      if (buffer.trim()) consume('\n\n');
 
       if (!data) throw new Error('No response received from server');
       if (data.error) throw new Error(data.error);

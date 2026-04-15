@@ -70,6 +70,8 @@ export function AppProvider({ children }) {
       document.documentElement.setAttribute('data-theme', 'dark');
     }
 
+    // Restore minimal project state on reload — but NOT chat history or
+    // uploaded image data URLs (kept in-memory only for privacy).
     try {
       const raw = sessionStorage.getItem('WEBCRAFT_PROJECT');
       if (raw) {
@@ -78,12 +80,9 @@ export function AppProvider({ children }) {
         setCss(data.css || '');
         setJs(data.js || '');
         setDesc(data.desc || '');
-        setHistory(data.history || []);
         setTotalTokens(data.totalTokens || 0);
-        setChatMessages(data.chatMessages || []);
         setCurrentHtml(data.currentHtml || '');
         setFeatures(data.features || []);
-        setImageUrls(data.imageUrls || []);
       }
     } catch(e) {}
   }, []);
@@ -104,15 +103,23 @@ export function AppProvider({ children }) {
     };
   }, [supabaseClient]);
 
-  // Save to session storage whenever critical state changes
+  // Save minimal project state on change. Chat messages, full history, and
+  // uploaded base64 images are intentionally NOT persisted to sessionStorage.
   useEffect(() => {
     try {
       sessionStorage.setItem('WEBCRAFT_PROJECT', JSON.stringify({
-        pages, css, js, desc, history, totalTokens,
-        chatMessages, currentHtml, features, imageUrls
+        pages, css, js, desc, totalTokens, currentHtml, features
       }));
     } catch(e) {}
-  }, [pages, css, js, desc, history, totalTokens, chatMessages, currentHtml, features, imageUrls]);
+  }, [pages, css, js, desc, totalTokens, currentHtml, features]);
+
+  // Clear in-memory chat + images on sign-out.
+  useEffect(() => {
+    if (!user) {
+      setChatMessages([]);
+      setImageUrls([]);
+    }
+  }, [user]);
 
   const value = {
     supabaseClient, user, setUser,

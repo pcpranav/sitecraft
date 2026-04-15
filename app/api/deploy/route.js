@@ -1,14 +1,19 @@
 // app/api/deploy/route.js
-// Deploy ZIP to Netlify — Next.js App Router
+// Deploy generated site to Vercel via the v13/deployments API.
+// Accepts a multipart upload with a `zip` (ZIP of the static site) or a
+// raw `html` string. Files are sent inline to the Vercel API.
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import JSZip from 'jszip';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Token',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+const MAX_BYTES = 10 * 1024 * 1024;
 
 function getSupabase() {
   const url = process.env.SUPABASE_URL;
@@ -27,6 +32,14 @@ async function getUser(req) {
   return user;
 }
 
+function slugify(s) {
+  return (s || 'site')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40) || 'site';
+}
+
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS });
 }
@@ -38,18 +51,13 @@ export async function POST(req) {
   const isAdmin = envAdmin && adminToken === envAdmin;
 
   if (!user && !isAdmin) {
-    return NextResponse.json(
-      { error: 'Sign in to deploy your site.' },
-      { status: 401, headers: CORS }
-    );
+    return NextResponse.json({ error: 'Sign in to deploy your site.' }, { status: 401, headers: CORS });
   }
 
-  const netlifyToken = process.env.NETLIFY_ACCESS_TOKEN;
-  const siteId = process.env.NETLIFY_SITE_ID;
-
-  if (!netlifyToken || !siteId) {
+  const vercelToken = process.env.VERCEL_TOKEN;
+  if (!vercelToken) {
     return NextResponse.json(
-      { error: 'Deploy not configured. Set NETLIFY_ACCESS_TOKEN and NETLIFY_SITE_ID.' },
+      { error: 'Deploy not configured. Set VERCEL_TOKEN in environment.' },
       { status: 500, headers: CORS }
     );
   }
@@ -57,39 +65,67 @@ export async function POST(req) {
   try {
     const formData = await req.formData();
     const zipFile = formData.get('zip');
+    const rawHtml = formData.get('html');
+    const projectName = formData.get('project_name') || 'sitecraft-site';
 
-    if (!zipFile) {
-      return NextResponse.json({ error: 'No zip file provided' }, { status: 400, headers: CORS });
+    let files = [];
+
+    if (zipFile && typeof zipFile !== 'string') {
+      if (zipFile.size > MAX_BYTES) {
+        return NextResponse.json({ error: 'Deploy bundle exceeds 10MB.' }, { status: 400, headers: CORS });
+      }
+      const buf = Buffer.from(await zipFile.arrayBuffer());
+      const zip = await JSZip.loadAsync(buf);
+      const entries = Object.values(zip.files).filter(f => !f.dir);
+      for (const entry of entries) {
+        const data = await entry.async('uint8array');
+        files.push({ file: entry.name, data: Buffer.from(data).toString('base64'), encoding: 'base64' });
+      }
+    } else if (typeof rawHtml === 'string' && rawHtml.length > 0) {
+      if (Buffer.byteLength(rawHtml, 'utf8') > MAX_BYTES) {
+        return NextResponse.json({ error: 'HTML payload exceeds 10MB.' }, { status: 400, headers: CORS });
+      }
+      files.push({ file: 'index.html', data: rawHtml });
+    } else {
+      return NextResponse.json({ error: 'Provide a zip file or html string.' }, { status: 400, headers: CORS });
     }
 
-    if (zipFile.size > 10 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: 'Deploy zip exceeds 10MB limit.' },
-        { status: 400, headers: CORS }
-      );
+    if (files.length === 0) {
+      return NextResponse.json({ error: 'Empty deploy bundle.' }, { status: 400, headers: CORS });
     }
 
-    const zipBuffer = await zipFile.arrayBuffer();
+    const teamId = process.env.VERCEL_TEAM_ID;
+    const url = `https://api.vercel.com/v13/deployments${teamId ? `?teamId=${encodeURIComponent(teamId)}` : ''}`;
 
-    const deployRes = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/deploys`, {
+    const deployRes = await fetch(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${netlifyToken}`,
-        'Content-Type': 'application/zip',
+        Authorization: `Bearer ${vercelToken}`,
+        'Content-Type': 'application/json',
       },
-      body: zipBuffer,
+      body: JSON.stringify({
+        name: process.env.VERCEL_PROJECT_NAME || slugify(projectName),
+        files,
+        target: 'production',
+        projectSettings: { framework: null },
+      }),
     });
 
     let deployData;
     try { deployData = await deployRes.json(); } catch {
-      throw new Error(`Netlify returned invalid JSON (${deployRes.status})`);
+      throw new Error(`Vercel returned invalid JSON (${deployRes.status})`);
     }
 
     if (!deployRes.ok) {
-      throw new Error(deployData.message || `Netlify deploy failed (${deployRes.status})`);
+      const msg = deployData?.error?.message || deployData?.message || `Vercel deploy failed (${deployRes.status})`;
+      throw new Error(msg);
     }
 
-    const deployUrl = deployData.ssl_url || deployData.deploy_ssl_url || deployData.url;
+    const host = deployData.alias?.[0] || deployData.url;
+    if (!host) {
+      throw new Error('Vercel did not return a deploy URL.');
+    }
+    const deployUrl = host.startsWith('http') ? host : `https://${host}`;
 
     if (user) {
       const projectId = formData.get('project_id');
@@ -108,7 +144,7 @@ export async function POST(req) {
     return NextResponse.json({
       url: deployUrl,
       deploy_id: deployData.id,
-      state: deployData.state,
+      state: deployData.readyState || deployData.state,
     }, { headers: CORS });
   } catch (err) {
     console.error('Deploy error:', err);
