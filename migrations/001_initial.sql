@@ -20,20 +20,22 @@ CREATE TABLE IF NOT EXISTS accounts (
   id_token TEXT,
   scope TEXT,
   session_state TEXT,
-  token_type TEXT
+  token_type TEXT,
+  UNIQUE (provider, "providerAccountId")
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
   id SERIAL PRIMARY KEY,
   "userId" INTEGER NOT NULL,
   expires TIMESTAMPTZ NOT NULL,
-  "sessionToken" VARCHAR(255) NOT NULL
+  "sessionToken" VARCHAR(255) NOT NULL,
+  UNIQUE ("sessionToken")
 );
 
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255),
-  email VARCHAR(255),
+  email VARCHAR(255) UNIQUE,
   "emailVerified" TIMESTAMPTZ,
   image TEXT
 );
