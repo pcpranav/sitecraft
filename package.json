@@ -7,15 +7,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:migrate": "node scripts/db-migrate.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@supabase/supabase-js": "^2.101.1",
+    "@auth/pg-adapter": "^1.11.2",
+    "@vercel/postgres": "^0.10.0",
     "jszip": "^3.10.1",
     "next": "^16.2.2",
+    "next-auth": "^5.0.0-beta.31",
+    "pg": "^8.20.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },
