@@ -57,6 +57,46 @@ const STARTER_PROMPTS = [
   { label: 'Startup', prompt: 'A bold tech startup landing page with animated hero, team section, pricing, and integrations' },
 ];
 
+function PresetSelect({ value, options, onChange, label }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const current = options.find(o => o.id === value) || options[0];
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    if (open) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div className="preset-field" ref={ref}>
+      <span className="preset-label">{label}</span>
+      <button type="button" className="preset-trigger" onClick={() => setOpen(!open)}>
+        <span>{current.label}</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+          style={{ transform: open ? 'rotate(180deg)' : '', transition: 'transform .15s' }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="preset-dropdown">
+          {options.map(opt => (
+            <button
+              key={opt.id}
+              type="button"
+              className={`preset-option ${opt.id === value ? 'active' : ''}`}
+              onClick={() => { onChange(opt.id); setOpen(false); }}
+            >
+              {opt.label}
+              {opt.id === value && <span className="preset-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Sidebar() {
   const {
     setPages, setCss, setJs,
@@ -402,18 +442,8 @@ export default function Sidebar() {
 
               {/* Style + Tone presets */}
               <div className="preset-row">
-                <label className="preset-field">
-                  <span className="preset-label">Style</span>
-                  <select className="preset-select" value={stylePreset} onChange={e => setStylePreset(e.target.value)}>
-                    {STYLE_PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-                  </select>
-                </label>
-                <label className="preset-field">
-                  <span className="preset-label">Tone</span>
-                  <select className="preset-select" value={tonePreset} onChange={e => setTonePreset(e.target.value)}>
-                    {TONE_PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-                  </select>
-                </label>
+                <PresetSelect label="Style" value={stylePreset} options={STYLE_PRESETS} onChange={setStylePreset} />
+                <PresetSelect label="Tone" value={tonePreset} options={TONE_PRESETS} onChange={setTonePreset} />
               </div>
 
               {/* Feature Pills */}
@@ -516,18 +546,8 @@ export default function Sidebar() {
             {showFeatures && (
               <div className="chat-features-dropdown">
                 <div className="preset-row preset-row-compact">
-                  <label className="preset-field">
-                    <span className="preset-label">Style</span>
-                    <select className="preset-select" value={stylePreset} onChange={e => setStylePreset(e.target.value)}>
-                      {STYLE_PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-                    </select>
-                  </label>
-                  <label className="preset-field">
-                    <span className="preset-label">Tone</span>
-                    <select className="preset-select" value={tonePreset} onChange={e => setTonePreset(e.target.value)}>
-                      {TONE_PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
-                    </select>
-                  </label>
+                  <PresetSelect label="Style" value={stylePreset} options={STYLE_PRESETS} onChange={setStylePreset} />
+                  <PresetSelect label="Tone" value={tonePreset} options={TONE_PRESETS} onChange={setTonePreset} />
                 </div>
                 {FEATURE_OPTIONS.map(f => (
                   <button
