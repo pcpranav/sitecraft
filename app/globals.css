@@ -3,77 +3,78 @@
 
 /* ── TOKENS ── */
 :root {
-  --font-sans: 'Inter', -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --r: 6px; --rl: 8px; --rx: 12px;
-  --transition: .15s ease-out;
+  /* font-* variables come from next/font (app/layout.js) */
+  --r: 8px; --rl: 12px; --rx: 16px;
+  --transition: .18s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── DARK THEME (Monochrome Stark) ── */
+/* ── DARK THEME (Warm graphite, indigo accent) ── */
 [data-theme="dark"] {
-  --bg:       #000000;
-  --surface:  #0a0a0a;
-  --panel:    #111111;
-  --card:     #161616;
-  --raise:    #1f1f1f;
-  --border:   #2e2e2e;
-  --border2:  #333333;
-  --muted:    #888888;
-  --subtle:   #a1a1aa;
-  --secondary:#cacaca;
-  --body:     #eaeaea;
+  --bg:       #08080b;
+  --surface:  #0d0d11;
+  --panel:    #111116;
+  --card:     #16161c;
+  --raise:    #1d1d24;
+  --border:   #25252e;
+  --border2:  #34343f;
+  --muted:    #797985;
+  --subtle:   #9d9da9;
+  --secondary:#c4c4cc;
+  --body:     #e6e6ec;
   --heading:  #ffffff;
   --bright:   #ffffff;
-  --accent:   #ffffff;
-  --accent-h: #f5f5f5;
-  --accent-s: rgba(255,255,255,0.1);
-  --green:    #10b981;
-  --green-s:  rgba(16, 185, 129, 0.15);
-  --red:      #ef4444;
-  --amber:    #eab308;
-  --blue:     #3b82f6;
-  --shadow:   0 4px 12px rgba(0,0,0,0.5);
-  --shadow-lg:0 12px 32px rgba(0,0,0,0.8);
+  --accent:   #818cf8;        /* soft indigo — used sparingly */
+  --accent-h: #a5b4fc;
+  --accent-s: rgba(129, 140, 248, 0.12);
+  --green:    #34d399;
+  --green-s:  rgba(52, 211, 153, 0.14);
+  --red:      #f87171;
+  --amber:    #fbbf24;
+  --blue:     #60a5fa;
+  --shadow:   0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 16px rgba(0,0,0,0.4);
+  --shadow-lg:0 1px 0 rgba(255,255,255,0.05) inset, 0 12px 36px rgba(0,0,0,0.5);
 }
 
-/* ── LIGHT THEME (Monochrome Crisp) ── */
+/* ── LIGHT THEME (Warm white, indigo accent) ── */
 [data-theme="light"] {
-  --bg:       #ffffff;
-  --surface:  #fafafa;
-  --panel:    #f5f5f5;
+  --bg:       #fafaf9;
+  --surface:  #ffffff;
+  --panel:    #f5f5f4;
   --card:     #ffffff;
-  --raise:    #f0f0f0;
-  --border:   #e5e5e5;
-  --border2:  #d4d4d8;
-  --muted:    #a1a1aa;
-  --subtle:   #71717a;
-  --secondary:#52525b;
-  --body:     #3f3f46;
-  --heading:  #000000;
-  --bright:   #000000;
-  --accent:   #000000;
-  --accent-h: #111111;
-  --accent-s: rgba(0,0,0,0.05);
+  --raise:    #f0f0ee;
+  --border:   #e7e7e3;
+  --border2:  #d4d4d0;
+  --muted:    #a1a1a8;
+  --subtle:   #6b6b73;
+  --secondary:#4a4a52;
+  --body:     #2a2a30;
+  --heading:  #0a0a0f;
+  --bright:   #0a0a0f;
+  --accent:   #4f46e5;        /* deeper indigo on light */
+  --accent-h: #4338ca;
+  --accent-s: rgba(79, 70, 229, 0.08);
   --green:    #059669;
   --green-s:  rgba(5, 150, 105, 0.1);
   --red:      #dc2626;
   --amber:    #d97706;
   --blue:     #2563eb;
-  --shadow:   0 2px 8px rgba(0,0,0,0.04);
-  --shadow-lg:0 8px 24px rgba(0,0,0,0.08);
+  --shadow:   0 1px 2px rgba(0,0,0,0.04), 0 1px 0 rgba(0,0,0,0.02);
+  --shadow-lg:0 4px 16px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
 }
 
 html { height: 100%; }
 body {
   min-height: 100%;
-  font-family: var(--font-sans);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg);
   color: var(--body);
   display: flex;
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
-  font-size: 13px;
-  line-height: 1.5;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: -0.005em;
   transition: background var(--transition), color var(--transition);
   margin: 0;
   padding: 0;
@@ -91,6 +92,15 @@ body {
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* Display font for headings + .display utility */
+h1, h2, h3, .display {
+  font-family: var(--font-display), var(--font-sans), -apple-system, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--heading);
+}
+h1 { font-weight: 700; letter-spacing: -0.03em; }
 
 /* ── HEADER ── */
 .header {
