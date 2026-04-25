@@ -14,6 +14,25 @@ const FEATURE_OPTIONS = [
   { id: 'image-gallery', label: 'Image Gallery', icon: '🖼️', desc: 'Photo grid with lightbox' },
 ];
 
+const STYLE_PRESETS = [
+  { id: 'auto', label: 'Auto-detect' },
+  { id: 'landing', label: 'Landing page' },
+  { id: 'portfolio', label: 'Portfolio' },
+  { id: 'blog', label: 'Blog / Magazine' },
+  { id: 'saas', label: 'SaaS product' },
+  { id: 'ecommerce', label: 'E-commerce' },
+  { id: 'other', label: 'Other' },
+];
+
+const TONE_PRESETS = [
+  { id: 'auto', label: 'Auto-detect' },
+  { id: 'minimal', label: 'Minimal' },
+  { id: 'playful', label: 'Playful' },
+  { id: 'corporate', label: 'Corporate' },
+  { id: 'bold', label: 'Bold' },
+  { id: 'retro', label: 'Retro' },
+];
+
 const LOADING_MESSAGES = [
   'Understanding your vision...',
   'Designing the layout...',
@@ -53,6 +72,8 @@ export default function Sidebar() {
   const [loadingMsg, setLoadingMsg] = useState('');
   const [modelOpen, setModelOpen] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
+  const [stylePreset, setStylePreset] = useState('auto');
+  const [tonePreset, setTonePreset] = useState('auto');
   const chatEndRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -232,6 +253,8 @@ export default function Sidebar() {
             provider,
             features: features.map(f => FEATURE_OPTIONS.find(o => o.id === f)?.label || f),
             imageUrls,
+            stylePreset: stylePreset === 'auto' ? undefined : stylePreset,
+            tonePreset: tonePreset === 'auto' ? undefined : tonePreset,
           }),
         });
       } catch (err) {
@@ -367,6 +390,22 @@ export default function Sidebar() {
               <h3>What do you want to build?</h3>
               <p>Describe any website idea. Works best for landing pages, portfolios, and simple brochures. Keep refining with follow-up messages.</p>
 
+              {/* Style + Tone presets */}
+              <div className="preset-row">
+                <label className="preset-field">
+                  <span className="preset-label">Style</span>
+                  <select className="preset-select" value={stylePreset} onChange={e => setStylePreset(e.target.value)}>
+                    {STYLE_PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                  </select>
+                </label>
+                <label className="preset-field">
+                  <span className="preset-label">Tone</span>
+                  <select className="preset-select" value={tonePreset} onChange={e => setTonePreset(e.target.value)}>
+                    {TONE_PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                  </select>
+                </label>
+              </div>
+
               {/* Feature Pills */}
               <div className="feature-pills">
                 <span className="feature-pills-label">Add features:</span>
@@ -466,6 +505,20 @@ export default function Sidebar() {
             </button>
             {showFeatures && (
               <div className="chat-features-dropdown">
+                <div className="preset-row preset-row-compact">
+                  <label className="preset-field">
+                    <span className="preset-label">Style</span>
+                    <select className="preset-select" value={stylePreset} onChange={e => setStylePreset(e.target.value)}>
+                      {STYLE_PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                    </select>
+                  </label>
+                  <label className="preset-field">
+                    <span className="preset-label">Tone</span>
+                    <select className="preset-select" value={tonePreset} onChange={e => setTonePreset(e.target.value)}>
+                      {TONE_PRESETS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+                    </select>
+                  </label>
+                </div>
                 {FEATURE_OPTIONS.map(f => (
                   <button
                     key={f.id}

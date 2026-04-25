@@ -1471,6 +1471,50 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   color: var(--secondary);
 }
 
+/* Style + Tone preset row */
+.preset-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  width: 100%;
+  max-width: 480px;
+}
+.preset-row-compact {
+  margin: 0 0 8px;
+  padding: 8px;
+}
+.preset-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.preset-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.preset-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--body);
+  padding: 6px 24px 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px;
+  transition: border-color 0.15s;
+}
+.preset-select:hover { border-color: var(--border2); }
+.preset-select:focus { outline: none; border-color: var(--heading); }
+
 /* ── CHAT FEATURES BAR ── */
 .chat-features-bar {
   border-top: 1px solid var(--border);
