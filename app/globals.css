@@ -1456,6 +1456,20 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   background: var(--raise); border-color: var(--border2);
   color: var(--body);
 }
+.quick-action-chip.primary {
+  color: var(--heading);
+  border-color: var(--border2);
+  font-weight: 500;
+}
+.quick-action-chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.quick-action-chip:disabled:hover {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--secondary);
+}
 
 /* ── CHAT FEATURES BAR ── */
 .chat-features-bar {

@@ -100,6 +100,48 @@ export default function Sidebar() {
     setImageUrls(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const regenerateLast = () => {
+    if (loading) return;
+    const lastUser = [...chatMessages].reverse().find(m => m.role === 'user');
+    if (!lastUser) return;
+    // Drop the last assistant turn (and its preceding user turn) so sendMessage
+    // can replay the same prompt cleanly.
+    const lastAssistantIdx = chatMessages.map(m => m.role).lastIndexOf('assistant');
+    if (lastAssistantIdx >= 0) {
+      const trimmed = chatMessages.slice(0, lastAssistantIdx).filter(m => m.id !== lastUser.id);
+      setChatMessages(trimmed);
+    }
+    sendMessage(lastUser.content);
+  };
+
+  const undoLastTurn = () => {
+    if (loading || chatMessages.length === 0) return;
+    // Drop trailing assistant + the user message that produced it.
+    let trimmed = [...chatMessages];
+    while (trimmed.length && trimmed[trimmed.length - 1].role === 'assistant') trimmed.pop();
+    while (trimmed.length && trimmed[trimmed.length - 1].role === 'user') {
+      trimmed.pop();
+      break;
+    }
+    setChatMessages(trimmed);
+
+    // Restore HTML from the previous history entry (history[0] is the current state).
+    const prev = history[1];
+    if (prev) {
+      setCurrentHtml(prev.pages?.['index.html'] || '');
+      setPages(prev.pages || {});
+      setCss(prev.css || '');
+      setJs(prev.js || '');
+      setHistory(history.slice(1));
+    } else {
+      setCurrentHtml('');
+      setPages({});
+      setCss('');
+      setJs('');
+      setHistory([]);
+    }
+  };
+
   const saveToCloud = async (newPages, newCss, newJs, newHistory) => {
     if (!user) return;
     try {
@@ -389,6 +431,12 @@ export default function Sidebar() {
               {/* Quick action chips after generation */}
               {!loading && hasConversation && currentHtml && (
                 <div className="quick-actions">
+                  <button className="quick-action-chip primary" onClick={regenerateLast} title="Re-run the last prompt with the current model">
+                    ↻ Regenerate
+                  </button>
+                  <button className="quick-action-chip primary" onClick={undoLastTurn} title="Drop the last turn and restore the previous version" disabled={history.length < 2}>
+                    ↶ Undo
+                  </button>
                   <button className="quick-action-chip" onClick={() => sendMessage('Add more high-quality images throughout the website. Use different images for each section.')}>
                     + Add more images
                   </button>
