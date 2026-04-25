@@ -1,10 +1,56 @@
 // app/api/ai/route.js
-// AI proxy — Gemini, Groq (Llama) with streaming support
+// AI proxy — Groq, Cerebras, OpenRouter, Cloudflare Workers AI.
+// All four are OpenAI-compatible chat-completion endpoints, served via one
+// shared callOpenAICompat helper. The frontend chooses provider+model;
+// PROVIDERS resolves the base URL and credentials.
 
 import { NextResponse } from 'next/server';
 
 // Extend serverless function timeout (Vercel)
 export const maxDuration = 60;
+
+// ── PROVIDER CONFIG ────────────────────────────────────────────────────────
+// Each entry resolves credentials at call time (not module load) so the
+// route still boots when only some keys are populated.
+const PROVIDERS = {
+  groq: {
+    label: 'Groq',
+    resolve: () => {
+      const apiKey = process.env.GROQ_API_KEY;
+      if (!apiKey) return { error: 'Groq API key not configured. Get one free at console.groq.com' };
+      return { baseURL: 'https://api.groq.com/openai/v1', apiKey };
+    },
+    useCompactPrompt: true,
+    maxTokensCap: 8000,
+  },
+  cerebras: {
+    label: 'Cerebras',
+    resolve: () => {
+      const apiKey = process.env.CEREBRAS_API_KEY;
+      if (!apiKey) return { error: 'Cerebras API key not configured. Get one at cloud.cerebras.ai' };
+      return { baseURL: 'https://api.cerebras.ai/v1', apiKey };
+    },
+  },
+  openrouter: {
+    label: 'OpenRouter',
+    resolve: () => {
+      const apiKey = process.env.OPENROUTER_API_KEY;
+      if (!apiKey) return { error: 'OpenRouter API key not configured. Get one at openrouter.ai/keys' };
+      return { baseURL: 'https://openrouter.ai/api/v1', apiKey };
+    },
+  },
+  cloudflare: {
+    label: 'Cloudflare Workers AI',
+    resolve: () => {
+      const apiKey = process.env.CF_AI_TOKEN;
+      const accountId = process.env.CF_ACCOUNT_ID;
+      if (!apiKey || !accountId) {
+        return { error: 'Cloudflare Workers AI not configured. Set CF_ACCOUNT_ID and CF_AI_TOKEN.' };
+      }
+      return { baseURL: `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/v1`, apiKey };
+    },
+  },
+};
 
 // ── SYSTEM PROMPT ─────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are Webcraft, an elite web developer AI that builds stunning, production-ready websites from natural language descriptions.
@@ -106,22 +152,24 @@ export async function POST(req) {
   }
 
   const {
-    provider = 'gemini',
-    model = 'gemini-2.5-flash',
+    provider = 'groq',
+    model = 'llama-3.3-70b-versatile',
     messages,
-    max_tokens = 16000,
+    max_tokens = 8000,
     features = [],
     imageUrls = [],
   } = body;
 
-  // Cap message volume to prevent abuse.
+  const providerCfg = PROVIDERS[provider];
+  if (!providerCfg) {
+    return NextResponse.json({ error: `Unknown provider: ${provider}` }, { status: 400 });
+  }
+
   if (Array.isArray(messages) && messages.length > 50) {
     return NextResponse.json({ error: 'Conversation too long. Start a new chat.' }, { status: 400 });
   }
 
-  // Build system prompt with feature context
-  // Use condensed prompt for Groq (strict TPM limits)
-  let systemPrompt = provider === 'groq' ? SYSTEM_PROMPT_COMPACT : SYSTEM_PROMPT;
+  let systemPrompt = providerCfg.useCompactPrompt ? SYSTEM_PROMPT_COMPACT : SYSTEM_PROMPT;
 
   if (features.length > 0) {
     systemPrompt += `\n\n## ACTIVE FEATURES\nIncorporate: ${features.join(', ')}`;
@@ -138,8 +186,9 @@ export async function POST(req) {
     }
   }
 
-  // Groq has strict token limits, reduce max_tokens
-  const effectiveMaxTokens = provider === 'groq' ? Math.min(max_tokens, 4000) : max_tokens;
+  const effectiveMaxTokens = providerCfg.maxTokensCap
+    ? Math.min(max_tokens, providerCfg.maxTokensCap)
+    : max_tokens;
 
   const finalMessages = messages || [];
   if (finalMessages.length === 0) {
@@ -161,28 +210,26 @@ export async function POST(req) {
         };
 
         try {
-          let result;
-          if (provider === 'groq') {
-            result = await callGroq({ model, system: systemPrompt, messages: finalMessages, max_tokens: effectiveMaxTokens });
-          } else {
-            result = await callGemini({ model, system: systemPrompt, messages: finalMessages, max_tokens: effectiveMaxTokens });
-          }
+          const result = await callOpenAICompat({
+            providerCfg,
+            model,
+            system: systemPrompt,
+            messages: finalMessages,
+            max_tokens: effectiveMaxTokens,
+          });
 
           const rawText = (result.content?.[0]?.text || '').trim();
 
-          // Strip markdown code fences (any language tag, or none).
           let html = rawText;
           const fenceMatch = html.match(/```[a-zA-Z]*\s*\n?([\s\S]*?)\n?```/);
           if (fenceMatch) html = fenceMatch[1].trim();
 
-          // Find the HTML document — prefer doctype, fall back to <html, then leave as-is.
           const lower = html.toLowerCase();
           const docIdx = lower.indexOf('<!doctype');
           const htmlIdx = lower.indexOf('<html');
           const startIdx = docIdx !== -1 ? docIdx : htmlIdx;
           if (startIdx > 0) html = html.slice(startIdx);
 
-          // Trim after </html>
           const endIdx = html.toLowerCase().lastIndexOf('</html>');
           if (endIdx !== -1) html = html.slice(0, endIdx + 7);
 
@@ -211,85 +258,28 @@ export async function POST(req) {
   }
 }
 
-// ── GEMINI ─────────────────────────────────────────────────────────────────
-async function callGemini({ model, system, messages, max_tokens }) {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw Object.assign(new Error('Gemini API key not configured.'), { status: 503 });
+// ── OpenAI-compatible call (Groq, Cerebras, OpenRouter, Cloudflare) ───────
+async function callOpenAICompat({ providerCfg, model, system, messages, max_tokens }) {
+  const resolved = providerCfg.resolve();
+  if (resolved.error) throw Object.assign(new Error(resolved.error), { status: 503 });
+  const { baseURL, apiKey } = resolved;
 
-  const contents = messages.map(m => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }],
-  }));
+  const chatMessages = [];
+  if (system) chatMessages.push({ role: 'system', content: system });
+  chatMessages.push(...messages);
 
-  const geminiBody = {
-    contents,
-    generationConfig: { maxOutputTokens: max_tokens },
-  };
-  if (system) {
-    geminiBody.systemInstruction = { parts: [{ text: system }] };
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(geminiBody),
-  });
-
-  let data;
-  try { data = await res.json(); } catch { throw new Error(`Gemini returned invalid JSON (${res.status})`); }
-  if (!res.ok || data.error) {
-    console.error('[Gemini] API error:', JSON.stringify(data.error || data, null, 2));
-    throw new Error(data.error?.message || `Gemini error ${res.status}`);
-  }
-
-  const candidate = data.candidates?.[0];
-  if (!candidate) {
-    const reason = data.promptFeedback?.blockReason;
-    console.error('[Gemini] No candidate:', JSON.stringify(data, null, 2));
-    throw new Error(reason ? `Blocked by safety filter: ${reason}` : 'No response from model — try rephrasing your prompt');
-  }
-
-  if (candidate.finishReason === 'SAFETY' || candidate.finishReason === 'BLOCKED') {
-    throw new Error('Response blocked by safety filter — try rephrasing your prompt');
-  }
-
-  const text = candidate.content?.parts?.[0]?.text ?? '';
-  if (!text) {
-    console.error('[Gemini] Empty text. Candidate:', JSON.stringify(candidate, null, 2));
-    throw new Error('Model returned empty response — try again');
-  }
-
-  return {
-    content: [{ type: 'text', text }],
-    usage: {
-      input_tokens: data.usageMetadata?.promptTokenCount ?? 0,
-      output_tokens: data.usageMetadata?.candidatesTokenCount ?? 0,
-    },
-  };
-}
-
-// ── GROQ (OpenAI-compatible) ──────────────────────────────────────────────
-async function callGroq({ model, system, messages, max_tokens }) {
-  const key = process.env.GROQ_API_KEY;
-  if (!key) throw Object.assign(new Error('Groq API key not configured. Get one free at console.groq.com'), { status: 503 });
-
-  const groqMessages = [];
-  if (system) groqMessages.push({ role: 'system', content: system });
-  groqMessages.push(...messages);
-
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  const res = await fetch(`${baseURL}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${key}`,
+      'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({ model, messages: groqMessages, max_tokens }),
+    body: JSON.stringify({ model, messages: chatMessages, max_tokens }),
   });
 
   let data;
-  try { data = await res.json(); } catch { throw new Error(`Groq returned invalid JSON (${res.status})`); }
-  if (!res.ok) throw new Error(data.error?.message || `Groq error ${res.status}`);
+  try { data = await res.json(); } catch { throw new Error(`${providerCfg.label} returned invalid JSON (${res.status})`); }
+  if (!res.ok) throw new Error(data.error?.message || data.error || `${providerCfg.label} error ${res.status}`);
 
   const text = data.choices?.[0]?.message?.content ?? '';
   return {
