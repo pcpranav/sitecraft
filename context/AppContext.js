@@ -46,9 +46,9 @@ export function AppProvider({ children }) {
   // Model selection
   const [selectedModel, setSelectedModel] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('WEBCRAFT_MODEL') || 'gpt-oss-120b';
+      return localStorage.getItem('WEBCRAFT_MODEL') || 'qwen-3-235b-a22b-instruct-2507';
     }
-    return 'gpt-oss-120b';
+    return 'qwen-3-235b-a22b-instruct-2507';
   });
 
   useEffect(() => {

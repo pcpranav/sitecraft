@@ -21,7 +21,6 @@ const PROVIDERS = {
       return { baseURL: 'https://api.groq.com/openai/v1', apiKey };
     },
     useCompactPrompt: true,
-    maxTokensCap: 8000,
   },
   cerebras: {
     label: 'Cerebras',
@@ -153,9 +152,9 @@ export async function POST(req) {
 
   const {
     provider = 'cerebras',
-    model = 'gpt-oss-120b',
+    model = 'qwen-3-235b-a22b-instruct-2507',
     messages,
-    max_tokens = 8000,
+    max_tokens,
     features = [],
     imageUrls = [],
   } = body;
@@ -186,10 +185,6 @@ export async function POST(req) {
     }
   }
 
-  const effectiveMaxTokens = providerCfg.maxTokensCap
-    ? Math.min(max_tokens, providerCfg.maxTokensCap)
-    : max_tokens;
-
   const finalMessages = messages || [];
   if (finalMessages.length === 0) {
     return NextResponse.json({ error: 'No messages provided' }, { status: 400 });
@@ -215,7 +210,7 @@ export async function POST(req) {
             model,
             system: systemPrompt,
             messages: finalMessages,
-            max_tokens: effectiveMaxTokens,
+            max_tokens,
           });
 
           const rawText = (result.content?.[0]?.text || '').trim();
@@ -268,13 +263,16 @@ async function callOpenAICompat({ providerCfg, model, system, messages, max_toke
   if (system) chatMessages.push({ role: 'system', content: system });
   chatMessages.push(...messages);
 
+  const requestBody = { model, messages: chatMessages };
+  if (max_tokens) requestBody.max_tokens = max_tokens;
+
   const res = await fetch(`${baseURL}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({ model, messages: chatMessages, max_tokens }),
+    body: JSON.stringify(requestBody),
   });
 
   let data;

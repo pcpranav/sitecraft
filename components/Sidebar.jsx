@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 
 const MODELS = [
-  { id: 'gpt-oss-120b', provider: 'cerebras', name: 'Cerebras · GPT-OSS 120B', desc: '120B · fastest 120B inference', color: '#f97316' },
+  { id: 'qwen-3-235b-a22b-instruct-2507', provider: 'cerebras', name: 'Cerebras · Qwen 3 235B', desc: '235B MoE · fastest large-model inference', color: '#f97316' },
   { id: 'inclusionai/ling-2.6-1t:free', provider: 'openrouter', name: 'Ling-2.6 · 1T params', desc: 'Trillion-param flagship · free', color: '#10b981' },
   { id: 'meta-llama/llama-4-scout-17b-16e-instruct', provider: 'groq', name: 'Groq · Llama 4 Scout', desc: '17B-active MoE · 750 tok/s', color: '#eab308' },
   { id: '@cf/moonshotai/kimi-k2.6', provider: 'cloudflare', name: 'Cloudflare · Kimi K2.6', desc: 'Coding + agentic · 256K ctx', color: '#f59e0b' },
