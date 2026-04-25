@@ -201,7 +201,7 @@ export default function Header() {
           const a = document.createElement('a');
           a.style.display = 'none';
           a.href = url;
-          a.download = 'webcraft-project.zip';
+          a.download = 'sitecraft-project.zip';
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);

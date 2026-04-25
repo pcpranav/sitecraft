@@ -25,7 +25,7 @@ export default function AuthModal({ isOpen, onClose }) {
     }}>
       <div className="modal">
         <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
-        <div className="modal-logo">W</div>
+        <div className="modal-logo">S</div>
         <h3>Sign in</h3>
         <p className="modal-desc">
           Sign in to export projects and save to the cloud.

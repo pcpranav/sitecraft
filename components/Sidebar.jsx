@@ -436,7 +436,7 @@ export default function Sidebar() {
         <div className="chat-scroll">
           {!hasConversation ? (
             <div className="chat-empty">
-              <div className="chat-empty-icon">W</div>
+              <div className="chat-empty-icon">S</div>
               <h3>What do you want to build?</h3>
               <p>Describe any website idea. Works best for landing pages, portfolios, and simple brochures. Keep refining with follow-up messages.</p>
 
@@ -478,7 +478,7 @@ export default function Sidebar() {
               {chatMessages.map(msg => (
                 <div key={msg.id} className={`chat-msg ${msg.role} ${msg.isError ? 'error' : ''}`}>
                   {msg.role === 'assistant' && (
-                    <div className="chat-msg-avatar">W</div>
+                    <div className="chat-msg-avatar">S</div>
                   )}
                   <div className="chat-msg-bubble">
                     <div className="chat-msg-text">{msg.content}</div>
@@ -497,7 +497,7 @@ export default function Sidebar() {
               {/* Loading indicator in chat */}
               {loading && (
                 <div className="chat-msg assistant">
-                  <div className="chat-msg-avatar">W</div>
+                  <div className="chat-msg-avatar">S</div>
                   <div className="chat-msg-bubble loading-bubble">
                     <div className="chat-loading-dots">
                       <span></span><span></span><span></span>
