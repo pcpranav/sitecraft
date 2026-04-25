@@ -2,6 +2,12 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useAppContext } from '@/context/AppContext';
 
+const VIEWPORTS = {
+  desktop: { label: 'Desktop', width: '100%' },
+  tablet: { label: 'Tablet', width: '768px' },
+  mobile: { label: 'Mobile', width: '375px' },
+};
+
 export default function PreviewFrame() {
   const {
     currentHtml, pages, css, js, currentFile, view,
@@ -10,6 +16,7 @@ export default function PreviewFrame() {
   const iframeRef = useRef(null);
   const [imageStatus, setImageStatus] = useState(null); // { total, loaded, failed, failedSrcs }
   const [showImagePanel, setShowImagePanel] = useState(false);
+  const [viewport, setViewport] = useState('desktop');
 
   const hasContent = !!currentHtml || Object.keys(pages).length > 0;
 
@@ -130,15 +137,38 @@ export default function PreviewFrame() {
     <div className="preview">
       {view === 'preview' ? (
         <>
-          <iframe
-            ref={iframeRef}
-            srcDoc={displayHtml}
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-            referrerPolicy="no-referrer"
-            style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
-            title="Preview"
-            onLoad={handleIframeLoad}
-          />
+          <div className="viewport-toolbar">
+            {Object.entries(VIEWPORTS).map(([key, vp]) => (
+              <button
+                key={key}
+                className={`viewport-btn ${viewport === key ? 'active' : ''}`}
+                onClick={() => setViewport(key)}
+                title={`${vp.label} (${vp.width})`}
+              >
+                {vp.label}
+              </button>
+            ))}
+          </div>
+          <div className="iframe-stage">
+            <iframe
+              ref={iframeRef}
+              srcDoc={displayHtml}
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+              referrerPolicy="no-referrer"
+              style={{
+                width: '100%',
+                maxWidth: VIEWPORTS[viewport].width,
+                height: '100%',
+                border: 'none',
+                background: '#fff',
+                margin: '0 auto',
+                display: 'block',
+                boxShadow: viewport === 'desktop' ? 'none' : '0 0 0 1px rgba(255,255,255,0.06)',
+              }}
+              title="Preview"
+              onLoad={handleIframeLoad}
+            />
+          </div>
           {/* Image status bar */}
           {imageStatus && imageStatus.total > 0 && (
             <div className="image-status-bar">
