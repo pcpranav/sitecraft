@@ -46,9 +46,9 @@ export function AppProvider({ children }) {
   // Model selection
   const [selectedModel, setSelectedModel] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('WEBCRAFT_MODEL') || 'gemini-2.5-flash';
+      return localStorage.getItem('WEBCRAFT_MODEL') || 'llama-3.3-70b-versatile';
     }
-    return 'gemini-2.5-flash';
+    return 'llama-3.3-70b-versatile';
   });
 
   useEffect(() => {
