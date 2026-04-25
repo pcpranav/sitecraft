@@ -4,16 +4,29 @@ import Link from 'next/link';
 import { useAppContext } from '@/context/AppContext';
 import AuthModal from '@/components/AuthModal';
 
+const PROVIDERS = [
+  { name: 'Cerebras', model: 'Qwen 3 235B' },
+  { name: 'Groq', model: 'Llama 4 Scout' },
+  { name: 'OpenRouter', model: 'Ling-2.6 Flash' },
+  { name: 'Cloudflare', model: 'GPT-OSS 120B' },
+];
+
+const FEATURES = [
+  { title: 'Free models only',  desc: 'Four 70B-class open-source endpoints. No paid tiers, no surprise bills.' },
+  { title: 'Switch mid-thread', desc: 'Pick a different model at any turn — same conversation, different brain.' },
+  { title: 'Yours to export',   desc: 'Download a ZIP of single-page HTML. Host anywhere, edit anything.' },
+  { title: 'Iterative by chat', desc: 'Refine via follow-up prompts. Undo a turn, regenerate with a different style.' },
+];
+
 export default function LandingPage() {
   const { user, isAuthOpen, setIsAuthOpen } = useAppContext();
 
   return (
     <div className="landing-layout">
-      {/* Sticky Glassmorphic Header */}
       <header className="landing-header">
         <Link href="/" className="landing-logo">
-          <div className="landing-logo-icon">W</div>
-          <div className="landing-logo-name">Webcraft<span className="landing-logo-sub">STUDIO</span></div>
+          <div className="landing-logo-icon">S</div>
+          <div className="landing-logo-name">Sitecraft</div>
         </Link>
         <nav className="landing-nav">
           {user ? (
@@ -31,10 +44,9 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      {/* Hero */}
       <main className="hero">
         <div className="hero-content">
-          <p className="hero-eyebrow">FREE & OPEN-SOURCE AI WEBSITE BUILDER</p>
+          <p className="hero-eyebrow">FREE & OPEN-SOURCE · AI WEBSITE BUILDER</p>
           <h1>Free models.<br/>Real websites.</h1>
           <p className="hero-desc">
             Describe any website in plain language. Sitecraft routes your prompt
@@ -51,9 +63,21 @@ export default function LandingPage() {
               </button>
             )}
           </div>
+
+          <div className="provider-strip">
+            <span className="provider-strip-label">Powered by</span>
+            <div className="provider-strip-pills">
+              {PROVIDERS.map(p => (
+                <div key={p.name} className="provider-pill">
+                  <span className="provider-name">{p.name}</span>
+                  <span className="provider-sep">·</span>
+                  <span className="provider-model">{p.model}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Mockup window */}
         <div className="hero-mockup">
           <div className="mockup-header">
             <div className="traffic-lights">
@@ -61,10 +85,9 @@ export default function LandingPage() {
               <div className="tl tl-y"></div>
               <div className="tl tl-g"></div>
             </div>
-            <div className="mockup-url">webcraft.studio / studio</div>
+            <div className="mockup-url">sitecraft / studio</div>
           </div>
           <div className="mockup-body">
-            {/* Sidebar mockup */}
             <div className="mockup-sidebar">
               <div className="mock-sidebar-label"></div>
               <div className="mock-sb-item active"></div>
@@ -74,7 +97,6 @@ export default function LandingPage() {
               <div className="mock-prompt"></div>
               <div className="mock-btn"></div>
             </div>
-            {/* Preview mockup */}
             <div className="mockup-preview">
               <div className="mock-h1"></div>
               <div className="mock-line"></div>
@@ -89,17 +111,12 @@ export default function LandingPage() {
         </div>
       </main>
 
-      {/* Features section */}
       <section className="features" id="features">
+        <p className="features-eyebrow">WHY SITECRAFT</p>
+        <h2 className="features-title">Built around the new free-tier frontier</h2>
         <div className="features-grid">
-          {[
-            { icon: '⚡', title: 'Instant generation', desc: 'Full website in seconds using AI.' },
-            { icon: '🎨', title: 'Fully styled', desc: 'Responsive CSS, mobile-ready.' },
-            { icon: '☁️', title: 'Cloud sync', desc: 'Save and access anywhere.' },
-            { icon: '📦', title: 'Export anywhere', desc: 'Download as a ZIP and host wherever.' },
-          ].map(f => (
+          {FEATURES.map(f => (
             <div className="feature-card" key={f.title}>
-              <div className="feature-icon">{f.icon}</div>
               <div className="feature-text">
                 <h3>{f.title}</h3>
                 <p>{f.desc}</p>
@@ -109,9 +126,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="landing-footer">
-        <span>© {new Date().getFullYear()} Webcraft Studio</span>
+        <span>© {new Date().getFullYear()} Sitecraft</span>
         {user ? (
           <Link href="/studio" className="landing-login-btn">Open Studio →</Link>
         ) : (
