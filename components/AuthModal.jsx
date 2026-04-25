@@ -1,9 +1,8 @@
 "use client";
 import React, { useState } from 'react';
-import { useAppContext } from '@/context/AppContext';
+import { signIn } from 'next-auth/react';
 
 export default function AuthModal({ isOpen, onClose }) {
-  const { supabaseClient } = useAppContext();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -11,24 +10,9 @@ export default function AuthModal({ isOpen, onClose }) {
 
   const handleGoogleLogin = async () => {
     setError('');
-    
-    if (!supabaseClient) {
-      setError('Supabase not configured. Check your environment variables.');
-      return;
-    }
-    
     setLoading(true);
-    
     try {
-      const { error } = await supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + '/studio'
-        }
-      });
-
-      if (error) throw error;
-      // No need to clear loading or close modal because the page redirects to Google immediately
+      await signIn('google', { callbackUrl: '/studio' });
     } catch (err) {
       setError(err.message || 'Google Authentication failed');
       setLoading(false);
