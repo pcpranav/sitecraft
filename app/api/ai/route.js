@@ -7,8 +7,10 @@
 import { NextResponse } from 'next/server';
 import { buildSystemPrompt } from '@/lib/system-prompt';
 
-// Extend serverless function timeout (Vercel)
-export const maxDuration = 60;
+// Extend serverless function timeout. Vercel clamps this to plan max:
+// Hobby = 60s, Pro = 300s, Enterprise = 900s. Setting 300 lets Pro+ use
+// slower models (1T-class, reasoning) without changing code per-plan.
+export const maxDuration = 300;
 
 // ── PROVIDER CONFIG ────────────────────────────────────────────────────────
 // Each entry resolves credentials at call time (not module load) so the

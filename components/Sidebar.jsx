@@ -237,9 +237,11 @@ export default function Sidebar() {
 
       const headers = { 'Content-Type': 'application/json' };
 
-      // Abort after 90s — server's hard cap is 60s; this guards against hangs.
+      // Client-side abort guard. Set above the server's maxDuration so
+      // genuine completions aren't cut short. Slow free-tier endpoints
+      // (large reasoning models) can take several minutes.
       const ctrl = new AbortController();
-      const abortTimer = setTimeout(() => ctrl.abort(), 90_000);
+      const abortTimer = setTimeout(() => ctrl.abort(), 300_000);
 
       let res;
       try {
