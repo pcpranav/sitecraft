@@ -10,11 +10,14 @@ export default function Header() {
   const {
     user, theme, setTheme, view, setView,
     isAuthOpen, setIsAuthOpen, pages, setPages, setCss, setJs,
-    setDesc, setHistory, setProjectId, projectId,
+    desc, setDesc, setHistory, setProjectId, projectId,
     sidebarOpen, setSidebarOpen, setCurrentFile,
     currentHtml, setCurrentHtml, setChatMessages, setFeatures, setImageUrls,
     chatMessages,
   } = useAppContext();
+
+  const projectTitle = (desc || '').trim().slice(0, 50);
+  const hasActiveProject = chatMessages.length > 0 || currentHtml || projectTitle;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [projects, setProjects] = useState([]);
@@ -168,9 +171,16 @@ export default function Header() {
           </svg>
         </button>
         <Link href="/" className="logo">
-          <div className="logo-icon">W</div>
-          <div className="logo-text">Webcraft<span>STUDIO</span></div>
+          <div className="logo-icon">S</div>
+          <div className="logo-text">Sitecraft</div>
         </Link>
+
+        {hasActiveProject && (
+          <div className="header-project" title={desc || 'Untitled session'}>
+            <span className="header-project-sep">/</span>
+            <span className="header-project-title">{projectTitle || 'Untitled session'}</span>
+          </div>
+        )}
 
         <div style={{ flex: 1 }}></div>
 

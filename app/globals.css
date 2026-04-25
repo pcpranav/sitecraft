@@ -111,6 +111,27 @@ h1 { font-weight: 700; letter-spacing: -0.03em; }
   flex-shrink: 0; position: relative; z-index: 20;
 }
 
+/* Current project label, sits next to the logo */
+.header-project {
+  display: flex; align-items: center; gap: 8px;
+  min-width: 0;
+  max-width: 360px;
+}
+.header-project-sep {
+  color: var(--border2);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.header-project-title {
+  font-size: 13px;
+  color: var(--secondary);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Accessible focus ring on interactive elements (indigo accent) */
 button:focus-visible,
 a:focus-visible,
@@ -897,17 +918,45 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
 }
 .ud-divider { height: 1px; background: var(--border); margin: 4px 2px; }
 .ud-proj-row {
-  display: flex; align-items: center; gap: 0;
+  display: flex; align-items: center; gap: 4px;
+  border-radius: var(--r);
+  transition: background var(--transition);
 }
+.ud-proj-row:hover { background: var(--raise); }
 .ud-proj-row .ud-proj-item { flex: 1; min-width: 0; }
+.ud-proj-row .ud-proj-item:hover { background: transparent; }
 .ud-proj-delete {
   display: flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; border-radius: var(--r);
-  border: none; background: none; cursor: pointer;
-  color: var(--muted); flex-shrink: 0; transition: all var(--transition);
+  width: 26px; height: 26px;
+  border-radius: var(--r);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+  flex-shrink: 0;
+  margin-right: 4px;
+  opacity: 0;
+  transition: all var(--transition);
 }
-.ud-proj-delete:hover { background: rgba(248,113,113,.08); color: var(--red); }
-.ud-proj-delete.confirm { background: rgba(248,113,113,.12); color: var(--red); }
+.ud-proj-row:hover .ud-proj-delete { opacity: 0.6; }
+.ud-proj-delete:hover {
+  opacity: 1 !important;
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--red);
+}
+.ud-proj-delete.confirm {
+  opacity: 1 !important;
+  width: auto;
+  padding: 0 8px;
+  background: rgba(248,113,113,0.12);
+  border-color: rgba(248,113,113,0.3);
+  color: var(--red);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.ud-proj-delete:disabled { cursor: wait; opacity: 1 !important; }
 @keyframes fadeDown { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ── SAVED PROJECTS ── */
@@ -1101,7 +1150,20 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   height: 44px;
   font-size: 14px;
   letter-spacing: -0.02em;
-  border-radius: 6px;
+  border-radius: var(--r);
+}
+
+/* Homepage primary buttons stay neutral white-on-bg — accent stays in studio */
+.landing-layout .btn-primary {
+  background: var(--heading) !important;
+  color: var(--bg) !important;
+  border-color: var(--heading) !important;
+  box-shadow: none !important;
+}
+.landing-layout .btn-primary:hover {
+  background: var(--heading) !important;
+  border-color: var(--heading) !important;
+  opacity: 0.88;
 }
 
 .hero-ghost-btn {
