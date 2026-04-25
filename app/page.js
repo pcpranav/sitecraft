@@ -34,14 +34,12 @@ export default function LandingPage() {
       {/* Hero */}
       <main className="hero">
         <div className="hero-content">
-          <p className="hero-eyebrow">AI-POWERED WEBSITE BUILDER</p>
-          <h1>From prompt to<br/>production.</h1>
+          <p className="hero-eyebrow">FREE & OPEN-SOURCE AI WEBSITE BUILDER</p>
+          <h1>Free models.<br/>Real websites.</h1>
           <p className="hero-desc">
-            Describe any website in plain language. Webcraft Studio instantly generates
-            a fully styled, interactive, single-page draft—no guesswork required.
-          </p>
-          <p className="hero-caption">
-            Basic AI website generator — great for drafts, not production.
+            Describe any website in plain language. Sitecraft routes your prompt
+            to four free, open-source AI models and returns a complete single-page
+            draft. Pick a different model anytime and iterate via chat.
           </p>
           <div className="hero-ctas">
             <Link href="/studio" className="btn btn-primary hero-btn">

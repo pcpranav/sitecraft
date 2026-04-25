@@ -20,7 +20,7 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" data-theme="dark" className={`${inter.className}`}>
-      <body>
+      <body suppressHydrationWarning>
         <SessionProvider>
           <AppProvider>{children}</AppProvider>
         </SessionProvider>

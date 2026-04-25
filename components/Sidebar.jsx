@@ -163,13 +163,19 @@ export default function Sidebar() {
     }
   };
 
-  const saveToCloud = async (newPages, newCss, newJs, newHistory) => {
+  const saveToCloud = async (newPages, newCss, newJs, newHistory, descOverride) => {
     if (!user) return;
+    // The first turn calls setDesc(text) right before saveToCloud, but React
+    // hasn't flushed the state by the time we read `desc` via closure — that's
+    // why every project saved as "Untitled". Callers can pass descOverride to
+    // bypass the stale read.
+    const effectiveDesc = (descOverride ?? desc ?? '').trim();
+    const projectName = effectiveDesc.slice(0, 60) || 'Untitled';
     try {
       const headers = { 'Content-Type': 'application/json' };
       const payload = {
-        name: desc || 'Untitled',
-        description: desc,
+        name: projectName,
+        description: effectiveDesc,
         pages: newPages,
         shared_css: newCss,
         shared_js: newJs,
@@ -328,7 +334,9 @@ export default function Sidebar() {
         prompt: text, pages: { 'index.html': html }, css: '', js: '', ts: Date.now()
       }, ...history];
       setHistory(newHistory);
-      saveToCloud({ 'index.html': html }, '', '', newHistory);
+      // Pass `desc || text` so the first-turn project name comes from the user's
+      // prompt instead of the empty stale `desc` state.
+      saveToCloud({ 'index.html': html }, '', '', newHistory, desc || text);
 
     } catch (e) {
       // Add error message to chat
