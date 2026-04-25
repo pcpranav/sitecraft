@@ -3,10 +3,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 
 const MODELS = [
-  { id: 'llama-3.3-70b-versatile', provider: 'groq', name: 'Groq · Llama 3.3 70B', desc: 'Fast · free tier', color: '#eab308' },
-  { id: 'llama3.3-70b', provider: 'cerebras', name: 'Cerebras · Llama 3.3 70B', desc: 'Ultra-fast · free tier', color: '#f97316' },
-  { id: 'deepseek/deepseek-r1:free', provider: 'openrouter', name: 'DeepSeek R1', desc: 'Reasoning · free tier', color: '#10b981' },
-  { id: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', provider: 'cloudflare', name: 'Cloudflare · Llama 3.3 70B', desc: 'Workers AI · free tier', color: '#f59e0b' },
+  { id: 'gpt-oss-120b', provider: 'cerebras', name: 'Cerebras · GPT-OSS 120B', desc: '120B · fastest 120B inference', color: '#f97316' },
+  { id: 'inclusionai/ling-2.6-1t:free', provider: 'openrouter', name: 'Ling-2.6 · 1T params', desc: 'Trillion-param flagship · free', color: '#10b981' },
+  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', provider: 'groq', name: 'Groq · Llama 4 Scout', desc: '17B-active MoE · 750 tok/s', color: '#eab308' },
+  { id: '@cf/moonshotai/kimi-k2.6', provider: 'cloudflare', name: 'Cloudflare · Kimi K2.6', desc: 'Coding + agentic · 256K ctx', color: '#f59e0b' },
 ];
 
 const FEATURE_OPTIONS = [

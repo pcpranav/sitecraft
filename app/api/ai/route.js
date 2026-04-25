@@ -152,8 +152,8 @@ export async function POST(req) {
   }
 
   const {
-    provider = 'groq',
-    model = 'llama-3.3-70b-versatile',
+    provider = 'cerebras',
+    model = 'gpt-oss-120b',
     messages,
     max_tokens = 8000,
     features = [],

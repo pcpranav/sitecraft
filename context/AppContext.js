@@ -46,9 +46,9 @@ export function AppProvider({ children }) {
   // Model selection
   const [selectedModel, setSelectedModel] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('WEBCRAFT_MODEL') || 'llama-3.3-70b-versatile';
+      return localStorage.getItem('WEBCRAFT_MODEL') || 'gpt-oss-120b';
     }
-    return 'llama-3.3-70b-versatile';
+    return 'gpt-oss-120b';
   });
 
   useEffect(() => {
