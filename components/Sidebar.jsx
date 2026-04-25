@@ -10,10 +10,8 @@ const MODELS = [
 ];
 
 const FEATURE_OPTIONS = [
-  { id: 'auth', label: 'Auth Pages', icon: '🔐', desc: 'Login & signup forms' },
   { id: 'contact-form', label: 'Contact Form', icon: '📝', desc: 'Contact or feedback form' },
   { id: 'image-gallery', label: 'Image Gallery', icon: '🖼️', desc: 'Photo grid with lightbox' },
-  { id: 'multi-page', label: 'Multi-Page', icon: '📄', desc: 'Multiple page sections' },
 ];
 
 const LOADING_MESSAGES = [
