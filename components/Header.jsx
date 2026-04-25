@@ -2,12 +2,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useAppContext } from '@/context/AppContext';
+import { signOut } from 'next-auth/react';
 import AuthModal from './AuthModal';
 import JSZip from 'jszip';
 
 export default function Header() {
   const {
-    user, supabaseClient, theme, setTheme, view, setView,
+    user, theme, setTheme, view, setView,
     isAuthOpen, setIsAuthOpen, pages, setPages, setCss, setJs,
     setDesc, setHistory, setProjectId, projectId,
     sidebarOpen, setSidebarOpen, setCurrentFile,
@@ -34,18 +35,14 @@ export default function Header() {
   }, [menuOpen]);
 
   useEffect(() => {
-    if (!menuOpen || !user || !supabaseClient) return;
+    if (!menuOpen || !user) return;
     fetchProjects();
-  }, [menuOpen, user, supabaseClient]);
+  }, [menuOpen, user]);
 
   const fetchProjects = async () => {
     setLoadingProjects(true);
     try {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session?.access_token) return;
-      const res = await fetch('/api/projects', {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const res = await fetch('/api/projects');
       const data = await res.json();
       if (res.ok && data.projects) setProjects(data.projects);
     } catch (e) { console.warn('Failed to load projects:', e); }
@@ -54,10 +51,7 @@ export default function Header() {
 
   const loadProject = async (proj) => {
     try {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      const res = await fetch(`/api/projects/${proj.id}`, {
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const res = await fetch(`/api/projects/${proj.id}`);
       const data = await res.json();
       if (res.ok && data.project) {
         const p = data.project;
@@ -94,11 +88,7 @@ export default function Header() {
     }
     setDeletingId(projId);
     try {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      const res = await fetch(`/api/projects/${projId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${session.access_token}` }
-      });
+      const res = await fetch(`/api/projects/${projId}`, { method: 'DELETE' });
       if (res.ok) {
         setProjects(prev => prev.filter(p => p.id !== projId));
         // If we deleted the currently loaded project, clear state
@@ -143,19 +133,18 @@ export default function Header() {
   };
 
   const getUserInitial = () => {
-    const name = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email;
+    const name = user?.name || user?.email;
     return name ? name.charAt(0).toUpperCase() : '?';
   };
 
   const getUserDisplay = () => {
-    return user?.user_metadata?.full_name || user?.user_metadata?.name || null;
+    return user?.name || null;
   };
 
   const handleSignOut = async () => {
-    if (!supabaseClient) return;
     try {
-      await supabaseClient.auth.signOut();
       clearAll();
+      await signOut({ callbackUrl: '/' });
     } catch (e) {
       console.error('Sign out failed:', e);
     }
@@ -229,8 +218,8 @@ export default function Header() {
         {user ? (
           <div className="user-pill-wrap" ref={menuRef}>
             <button className="user-pill" onClick={() => { setMenuOpen(!menuOpen); setConfirmDeleteId(null); }}>
-              {user.user_metadata?.avatar_url ? (
-                <img src={user.user_metadata.avatar_url} className="user-avatar-img" alt="" />
+              {user.image ? (
+                <img src={user.image} className="user-avatar-img" alt="" />
               ) : (
                 <div className="user-avatar">{getUserInitial()}</div>
               )}

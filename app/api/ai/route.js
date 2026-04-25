@@ -2,64 +2,9 @@
 // AI proxy — Gemini, Groq (Llama) with streaming support
 
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 
 // Extend serverless function timeout (Vercel)
 export const maxDuration = 60;
-
-// In-memory anon rate-limit fallback (per cold-start instance).
-const _anonHits = new Map();
-function checkAnonRate(ip) {
-  const limit = parseInt(process.env.AI_ANON_RATE_LIMIT_PER_HOUR || '5', 10);
-  const now = Date.now();
-  const rec = _anonHits.get(ip);
-  if (!rec || now - rec.start > 3600_000) {
-    _anonHits.set(ip, { count: 1, start: now });
-    return { ok: true };
-  }
-  rec.count++;
-  if (rec.count > limit) return { ok: false, retryAfter: Math.ceil((rec.start + 3600_000 - now) / 1000) };
-  return { ok: true };
-}
-
-async function checkUserRate(userId) {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_KEY;
-  if (!url || !key) return { ok: true }; // fail-open if not configured
-  const limit = parseInt(process.env.AI_RATE_LIMIT_PER_HOUR || '60', 10);
-  try {
-    const sb = createClient(url, key);
-    const { data, error } = await sb.rpc('increment_rate_limit', { p_user_id: userId, p_window_seconds: 3600 });
-    if (error) return { ok: true };
-    if ((data ?? 0) > limit) return { ok: false, retryAfter: 3600 };
-    return { ok: true };
-  } catch {
-    return { ok: true };
-  }
-}
-
-async function resolveUser(req) {
-  const auth = req.headers.get('authorization');
-  if (!auth?.startsWith('Bearer ')) return null;
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  try {
-    const sb = createClient(url, key);
-    const { data: { user } } = await sb.auth.getUser(auth.slice(7));
-    return user || null;
-  } catch { return null; }
-}
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: CORS });
-}
 
 // ── SYSTEM PROMPT ─────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are Webcraft, an elite web developer AI that builds stunning, production-ready websites from natural language descriptions.
@@ -157,18 +102,7 @@ export async function POST(req) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400, headers: CORS });
-  }
-
-  // Rate limit
-  const user = await resolveUser(req);
-  if (user) {
-    const r = await checkUserRate(user.id);
-    if (!r.ok) return NextResponse.json({ error: 'Rate limit exceeded. Try again in an hour.' }, { status: 429, headers: { ...CORS, 'Retry-After': String(r.retryAfter) } });
-  } else {
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'anon';
-    const r = checkAnonRate(ip);
-    if (!r.ok) return NextResponse.json({ error: 'Anonymous limit reached. Sign in for more generations.' }, { status: 429, headers: { ...CORS, 'Retry-After': String(r.retryAfter) } });
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
   const {
@@ -182,7 +116,7 @@ export async function POST(req) {
 
   // Cap message volume to prevent abuse.
   if (Array.isArray(messages) && messages.length > 50) {
-    return NextResponse.json({ error: 'Conversation too long. Start a new chat.' }, { status: 400, headers: CORS });
+    return NextResponse.json({ error: 'Conversation too long. Start a new chat.' }, { status: 400 });
   }
 
   // Build system prompt with feature context
@@ -209,13 +143,11 @@ export async function POST(req) {
 
   const finalMessages = messages || [];
   if (finalMessages.length === 0) {
-    return NextResponse.json({ error: 'No messages provided' }, { status: 400, headers: CORS });
+    return NextResponse.json({ error: 'No messages provided' }, { status: 400 });
   }
 
-  // Use streaming to avoid Netlify function timeout
   try {
     const streamHeaders = {
-      ...CORS,
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
@@ -274,7 +206,7 @@ export async function POST(req) {
     console.error(`[${provider}] Stream error:`, err.message);
     return NextResponse.json(
       { error: err.message || 'AI request failed' },
-      { status: 500, headers: CORS }
+      { status: 500 }
     );
   }
 }
