@@ -45,7 +45,7 @@ export default function Sidebar() {
   const {
     setPages, setCss, setJs,
     desc, setDesc, history, setHistory, setCurrentFile,
-    supabaseClient, projectId, setProjectId, user, totalTokens, setTotalTokens,
+    projectId, setProjectId, user, totalTokens, setTotalTokens,
     setIsAuthOpen, sidebarOpen, setSidebarOpen, selectedModel, setSelectedModel,
     chatMessages, setChatMessages, currentHtml, setCurrentHtml,
     features, setFeatures, imageUrls, setImageUrls,
@@ -104,14 +104,9 @@ export default function Sidebar() {
   };
 
   const saveToCloud = async (newPages, newCss, newJs, newHistory) => {
-    if (!supabaseClient || !user) return;
+    if (!user) return;
     try {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session?.access_token) return;
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      };
+      const headers = { 'Content-Type': 'application/json' };
       const payload = {
         name: desc || 'Untitled',
         description: desc,
@@ -180,14 +175,7 @@ export default function Sidebar() {
         }
       }
 
-      // Auth header (if signed in) so server can rate-limit per user.
       const headers = { 'Content-Type': 'application/json' };
-      try {
-        if (supabaseClient) {
-          const { data: { session } } = await supabaseClient.auth.getSession();
-          if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-        }
-      } catch {}
 
       // Abort after 90s — server's hard cap is 60s; this guards against hangs.
       const ctrl = new AbortController();
