@@ -3,11 +3,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 
 const MODELS = [
-  { id: 'gemini-2.5-flash', provider: 'gemini', name: 'Gemini 2.5 Flash', desc: 'Fast & smart', color: '#3b82f6' },
-  { id: 'gemini-2.5-flash-lite', provider: 'gemini', name: 'Gemini 2.5 Flash Lite', desc: 'Fastest · unlimited', color: '#06b6d4' },
-  { id: 'gemini-2.5-pro', provider: 'gemini', name: 'Gemini 2.5 Pro', desc: 'Best quality', color: '#8b5cf6' },
-  { id: 'gemini-3-flash-preview', provider: 'gemini', name: 'Gemini 3 Flash', desc: 'Latest · preview', color: '#10b981' },
-  { id: 'llama-3.3-70b-versatile', provider: 'groq', name: 'Llama 3.3 70B', desc: 'Groq · fast', color: '#eab308' },
+  { id: 'llama-3.3-70b-versatile', provider: 'groq', name: 'Groq · Llama 3.3 70B', desc: 'Fast · free tier', color: '#eab308' },
+  { id: 'llama3.3-70b', provider: 'cerebras', name: 'Cerebras · Llama 3.3 70B', desc: 'Ultra-fast · free tier', color: '#f97316' },
+  { id: 'deepseek/deepseek-r1:free', provider: 'openrouter', name: 'DeepSeek R1', desc: 'Reasoning · free tier', color: '#10b981' },
+  { id: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', provider: 'cloudflare', name: 'Cloudflare · Llama 3.3 70B', desc: 'Workers AI · free tier', color: '#f59e0b' },
 ];
 
 const FEATURE_OPTIONS = [
