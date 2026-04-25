@@ -1023,7 +1023,16 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   line-height: 1.6;
   letter-spacing: -0.01em;
   max-width: 560px;
-  margin: 0 auto 36px;
+  margin: 0 auto 12px;
+}
+
+.hero-caption {
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+  max-width: 560px;
+  margin: 0 auto 28px;
+  opacity: 0.75;
 }
 
 .hero-ctas {

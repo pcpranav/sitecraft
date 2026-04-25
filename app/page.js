@@ -38,7 +38,10 @@ export default function LandingPage() {
           <h1>From prompt to<br/>production.</h1>
           <p className="hero-desc">
             Describe any website in plain language. Webcraft Studio instantly generates
-            a fully styled, interactive, production-ready codebase—no guesswork required.
+            a fully styled, interactive, single-page draft—no guesswork required.
+          </p>
+          <p className="hero-caption">
+            Basic AI website generator — great for drafts, not production.
           </p>
           <div className="hero-ctas">
             <Link href="/studio" className="btn btn-primary hero-btn">

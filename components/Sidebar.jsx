@@ -323,7 +323,7 @@ export default function Sidebar() {
             <div className="chat-empty">
               <div className="chat-empty-icon">W</div>
               <h3>What do you want to build?</h3>
-              <p>Describe your website and I'll create it instantly. You can keep refining with follow-up messages.</p>
+              <p>Describe any website idea. Works best for landing pages, portfolios, and simple brochures. Keep refining with follow-up messages.</p>
 
               {/* Feature Pills */}
               <div className="feature-pills">
@@ -490,7 +490,11 @@ export default function Sidebar() {
 
           {/* Model selector */}
           <div className="chat-bottom-bar">
-            <button className="model-select-btn" onClick={() => setModelOpen(!modelOpen)}>
+            <button
+              className="model-select-btn"
+              onClick={() => setModelOpen(!modelOpen)}
+              title="Outputs are single-page HTML drafts. Don't expect pixel-perfect or backend-connected sites."
+            >
               <span className="model-dot-sm" style={{ background: currentModel.color }}></span>
               <span>{currentModel.name}</span>
               <span className="chevron" style={{ transform: modelOpen ? 'rotate(180deg)' : '' }}>▾</span>
