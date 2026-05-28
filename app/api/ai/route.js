@@ -75,7 +75,9 @@ export async function POST(req) {
     provider = 'cerebras',
     model = 'gpt-oss-120b',
     messages,
-    max_tokens,
+    // Default high enough to fit a substantive single-page site; without this
+    // some providers default to ~1K and clip the HTML mid-tag → blank preview.
+    max_tokens = 8000,
     features = [],
     imageUrls = [],
     stylePreset,

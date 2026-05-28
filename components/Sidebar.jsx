@@ -4,7 +4,7 @@ import { useAppContext } from '@/context/AppContext';
 
 const MODELS = [
   { id: 'gpt-oss-120b', provider: 'cerebras', name: 'Cerebras · GPT-OSS 120B', desc: '120B MoE · fastest large-model inference', color: '#f97316' },
-  { id: 'deepseek/deepseek-v4-flash:free', provider: 'openrouter', name: 'OpenRouter · DeepSeek V4 Flash', desc: 'Free · 1M ctx · reasoning + code', color: '#10b981' },
+  { id: 'openrouter/free', provider: 'openrouter', name: 'OpenRouter · Free Auto', desc: 'Auto-routes across ~24 free models · resilient to upstream throttling', color: '#10b981' },
   { id: 'meta-llama/llama-4-scout-17b-16e-instruct', provider: 'groq', name: 'Groq · Llama 4 Scout', desc: '17B-active MoE · 750 tok/s', color: '#eab308' },
   { id: '@cf/qwen/qwen3-30b-a3b-fp8', provider: 'cloudflare', name: 'Cloudflare · Qwen3 30B', desc: '30B MoE · 3B active · fast', color: '#f59e0b' },
 ];

@@ -7,7 +7,7 @@ import AuthModal from '@/components/AuthModal';
 const PROVIDERS = [
   { name: 'Cerebras', model: 'GPT-OSS 120B' },
   { name: 'Groq', model: 'Llama 4 Scout' },
-  { name: 'OpenRouter', model: 'DeepSeek V4 Flash' },
+  { name: 'OpenRouter', model: 'Free Auto' },
   { name: 'Cloudflare', model: 'Qwen3 30B' },
 ];
 

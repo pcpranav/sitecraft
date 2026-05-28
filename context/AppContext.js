@@ -53,6 +53,7 @@ export function AppProvider({ children }) {
       'inclusionai/ling-2.6-flash:free', // OpenRouter free tier removed
       '@cf/openai/gpt-oss-120b',         // Cloudflare slot dropped (poor results)
       'qwen/qwen3-coder:free',           // OpenRouter free upstream rate-limited
+      'deepseek/deepseek-v4-flash:free', // OpenRouter free upstream rate-limited
     ]);
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('WEBCRAFT_MODEL');
