@@ -20,7 +20,7 @@ The system prompt told the model to write mobile-first CSS:
 
 Models followed the instruction. They wrote good mobile rules. Then they wrote thin, half-hearted desktop overrides — a max-width here, a media query for two-column layout there. Critical things were missing: bounded container widths, real multi-column grids, typography that genuinely scaled up, deliberate section padding rhythm. Desktop wasn't broken — it was *underdesigned*. The mobile rules absorbed most of the model's attention budget.
 
-This wasn't a one-model problem. I tested four (Cerebras GPT-OSS 120B, Groq Llama 4 Scout, Cloudflare Qwen3 30B, OpenRouter free auto-router). All four showed the same pattern. The strongest model produced the most polished mobile experience and still had thin desktop.
+This wasn't a one-model problem. I [tested four](https://dev.to/pcpranav/i-tested-4-free-70b-class-llm-endpoints-for-real-production-work-heres-what-each-is-actually-1if9) (Cerebras GPT-OSS 120B, Groq Llama 4 Scout, Cloudflare Qwen3 30B, OpenRouter free auto-router). All four showed the same pattern. The strongest model produced the most polished mobile experience and still had thin desktop.
 
 ## What I tried first
 
@@ -141,3 +141,5 @@ I lost two weeks before making this switch. The prompt-side fixes felt productiv
 ---
 
 *Try it live: [wiz-craft.vercel.app](https://wiz-craft.vercel.app/) — open source on [GitHub](https://github.com/pcpranav/sitecraft). Four free open-source models, generates Tailwind-styled single-page sites from a prompt, streams the iframe live as the model writes. Built with Claude.*
+
+*More on the four providers I'm using: [I tested 4 free 70B-class LLM endpoints for real production work](https://dev.to/pcpranav/i-tested-4-free-70b-class-llm-endpoints-for-real-production-work-heres-what-each-is-actually-1if9).*
