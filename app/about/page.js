@@ -3,16 +3,24 @@ import React, { useState } from 'react';
 import { PublicHeader, PublicFooter, GITHUB_URL } from '@/components/PublicChrome';
 import Icon from '@/components/Icon';
 
+// Gmail "+" alias — easy to filter or kill if it gets scraped.
+const FEEDBACK_EMAIL = 'pcpranavchandra+sitecraft@gmail.com';
+
 export default function AboutPage() {
   const [feedback, setFeedback] = useState('');
 
-  const submitFeedback = () => {
+  const submitAsIssue = () => {
     const body = feedback.trim();
     if (!body) return;
-    // Open a prefilled GitHub issue. The user already has the OSS repo set
-    // up; this avoids us needing a feedback inbox / email infra.
     const url = `${GITHUB_URL}/issues/new?title=${encodeURIComponent('Feedback')}&body=${encodeURIComponent(body)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const submitByEmail = () => {
+    const body = feedback.trim();
+    if (!body) return;
+    const url = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent('Sitecraft feedback')}&body=${encodeURIComponent(body)}`;
+    window.location.href = url;
   };
 
   return (
@@ -53,7 +61,7 @@ export default function AboutPage() {
           <h2 className="about-section-title">Report a bug or share feedback</h2>
           <p className="about-section-desc">
             Sitecraft is open source. Tell me what's broken, what's missing,
-            or what you'd want next — I'll see it as a GitHub issue.
+            or what you'd want next — pick whichever channel is easier.
           </p>
           <textarea
             className="about-feedback"
@@ -65,13 +73,20 @@ export default function AboutPage() {
           <div className="about-feedback-actions">
             <button
               className="btn btn-primary"
-              onClick={submitFeedback}
+              onClick={submitAsIssue}
               disabled={!feedback.trim()}
             >
               Open as GitHub issue
             </button>
+            <button
+              className="btn"
+              onClick={submitByEmail}
+              disabled={!feedback.trim()}
+            >
+              Or send by email
+            </button>
             <span className="about-feedback-hint">
-              Opens a prefilled GitHub issue in a new tab.
+              GitHub issue opens in a new tab; email opens your mail client.
             </span>
           </div>
         </section>
