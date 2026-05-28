@@ -1611,6 +1611,21 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   background: rgba(239,68,68,.04);
 }
 .chat-msg-text { word-break: break-word; }
+
+/* System dividers — e.g. model switches inside an ongoing chat. */
+.chat-system-divider {
+  display: flex; align-items: center; gap: 10px;
+  margin: 12px 4px 8px;
+}
+.chat-system-line {
+  flex: 1; height: 1px; background: var(--border);
+}
+.chat-system-text {
+  font-size: 9px; font-family: var(--font-mono);
+  color: var(--muted);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  white-space: nowrap;
+}
 .chat-msg-meta {
   display: flex; align-items: center; gap: 6px;
   margin-top: 6px;
@@ -1928,8 +1943,21 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
 }
 .model-dropdown-item:hover { background: var(--card); }
 .model-dropdown-item.active { background: var(--accent-s); }
+.model-dropdown-info { flex: 1; min-width: 0; }
 .model-dropdown-name { font-size: 12px; font-weight: 500; color: var(--heading); letter-spacing: -0.01em; }
 .model-dropdown-desc { font-size: 10px; color: var(--muted); margin-top: 1px; }
+.model-dropdown-stats { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.model-stat {
+  font-size: 9px; font-family: var(--font-mono);
+  padding: 2px 6px; border-radius: 4px;
+  background: var(--raise); color: var(--muted);
+  letter-spacing: -0.01em; white-space: nowrap;
+}
+.model-stat.stat-high { color: var(--green); background: var(--green-s); }
+.model-stat.stat-med  { color: var(--amber); background: rgba(251, 191, 36, 0.10); }
+[data-theme="light"] .model-stat.stat-med { background: rgba(217, 119, 6, 0.10); }
+.model-stat.stat-low  { color: var(--muted); background: var(--card); }
+.model-check { margin-left: 6px; color: var(--green); flex-shrink: 0; }
 .token-count {
   font-size: 10px; font-family: var(--font-mono);
   color: var(--muted); margin-left: auto;

@@ -166,12 +166,44 @@ export default function Sidebar() {
 
   const currentModel = MODELS.find(m => m.id === selectedModel) || MODELS[0];
   const hasConversation = chatMessages.length > 0;
+
+  // Gate model switches mid-conversation behind a confirmation. Without this
+  // it's too seamless — users don't realize a refinement is now being served
+  // by a different model with a different style. On confirm, drop a system
+  // divider into the chat so the switch is visible in the transcript.
+  const attemptModelSwitch = (nextId) => {
+    if (nextId === selectedModel) { setModelOpen(false); return; }
+    const next = MODELS.find(m => m.id === nextId);
+    if (!next) return;
+
+    if (hasConversation) {
+      const ok = window.confirm(
+        `Switch to ${next.name} for the rest of this chat?\n\n` +
+        `The new model may produce different design choices when you ask for refinements. ` +
+        `Click OK to switch, or Cancel to keep ${currentModel.name}.`
+      );
+      if (!ok) { setModelOpen(false); return; }
+      setChatMessages(prev => [...prev, {
+        id: Date.now(),
+        role: 'system',
+        kind: 'model-switch',
+        content: `Switched to ${next.name}`,
+        timestamp: Date.now(),
+      }]);
+    }
+
+    setSelectedModel(nextId);
+    setModelOpen(false);
+  };
+
   const modelActiveIdx = useArrowKeys({
     open: modelOpen,
     count: MODELS.length,
-    onSelect: (i) => setSelectedModel(MODELS[i].id),
+    onSelect: (i) => attemptModelSwitch(MODELS[i].id),
     onClose: () => setModelOpen(false),
   });
+
+  const labelFor = (level) => level === 'high' ? 'High' : level === 'med' ? 'Med' : 'Low';
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -328,15 +360,16 @@ export default function Sidebar() {
       const apiMessages = [];
 
       for (const msg of updatedMessages) {
+        // System dividers (model-switch markers, etc.) are UI-only — they
+        // shouldn't leak into the model's conversation.
+        if (msg.role === 'system') continue;
         if (msg.role === 'user') {
           let content = msg.content;
-          // For non-first messages, include current HTML context
           if (msg.id === userMsg.id && currentHtml && !isFirst) {
             content = `Here is the current website HTML:\n\n${currentHtml}\n\nUser request: ${msg.content}\n\nReturn the COMPLETE updated HTML with the requested changes.`;
           }
           apiMessages.push({ role: 'user', content });
         } else {
-          // For assistant messages, just send a short acknowledgment to save tokens
           apiMessages.push({ role: 'assistant', content: 'Done. The website has been updated.' });
         }
       }
@@ -549,24 +582,35 @@ export default function Sidebar() {
             </div>
           ) : (
             <div className="chat-messages">
-              {chatMessages.map(msg => (
-                <div key={msg.id} className={`chat-msg ${msg.role} ${msg.isError ? 'error' : ''}`}>
-                  {msg.role === 'assistant' && (
-                    <BrandMark size={22} className="chat-msg-avatar" />
-                  )}
-                  <div className="chat-msg-bubble">
-                    <div className="chat-msg-text">{msg.content}</div>
-                    <div className="chat-msg-meta">
-                      {msg.model && (
-                        <span className="chat-msg-model">
-                          <span className="chat-model-dot" style={{ background: MODELS.find(m => m.id === msg.model)?.color || '#888' }}></span>
-                          {MODELS.find(m => m.id === msg.model)?.name || msg.model}
-                        </span>
-                      )}
+              {chatMessages.map(msg => {
+                if (msg.role === 'system') {
+                  return (
+                    <div key={msg.id} className="chat-system-divider">
+                      <span className="chat-system-line"></span>
+                      <span className="chat-system-text">{msg.content}</span>
+                      <span className="chat-system-line"></span>
+                    </div>
+                  );
+                }
+                return (
+                  <div key={msg.id} className={`chat-msg ${msg.role} ${msg.isError ? 'error' : ''}`}>
+                    {msg.role === 'assistant' && (
+                      <BrandMark size={22} className="chat-msg-avatar" />
+                    )}
+                    <div className="chat-msg-bubble">
+                      <div className="chat-msg-text">{msg.content}</div>
+                      <div className="chat-msg-meta">
+                        {msg.model && (
+                          <span className="chat-msg-model">
+                            <span className="chat-model-dot" style={{ background: MODELS.find(m => m.id === msg.model)?.color || '#888' }}></span>
+                            {MODELS.find(m => m.id === msg.model)?.name || msg.model}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {/* Loading indicator in chat */}
               {loading && (
@@ -712,17 +756,18 @@ export default function Sidebar() {
                     <button
                       key={m.id}
                       className={`model-dropdown-item ${selectedModel === m.id ? 'active' : ''} ${i === modelActiveIdx ? 'kbd-focus' : ''}`}
-                      onClick={() => {
-                        setSelectedModel(m.id);
-                        setModelOpen(false);
-                      }}
+                      onClick={() => attemptModelSwitch(m.id)}
                     >
                       <span className="model-dot-sm" style={{ background: m.color }}></span>
-                      <div>
+                      <div className="model-dropdown-info">
                         <div className="model-dropdown-name">{m.name}</div>
                         <div className="model-dropdown-desc">{m.desc}</div>
+                        <div className="model-dropdown-stats">
+                          <span className={`model-stat stat-${m.quality}`}>Quality · {labelFor(m.quality)}</span>
+                          <span className={`model-stat stat-${m.speed}`}>Speed · {labelFor(m.speed)}</span>
+                        </div>
                       </div>
-                      {selectedModel === m.id && <span style={{ marginLeft: 'auto', color: 'var(--green)' }}>✓</span>}
+                      {selectedModel === m.id && <span className="model-check">✓</span>}
                     </button>
                   ))}
                 </div>
