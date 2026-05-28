@@ -13,10 +13,12 @@ const PROVIDERS = [
 ];
 
 const FEATURES = [
-  { title: 'Free models only',  desc: 'Four 70B-class open-source endpoints. No paid tiers, no surprise bills.' },
-  { title: 'Switch mid-thread', desc: 'Pick a different model at any turn — same conversation, different brain.' },
-  { title: 'Yours to export',   desc: 'Download a ZIP of single-page HTML. Host anywhere, edit anything.' },
-  { title: 'Iterative by chat', desc: 'Refine via follow-up prompts. Undo a turn, regenerate with a different style.' },
+  { title: 'Free models only',   desc: 'Four 70B-class open-source endpoints. No paid tiers, no surprise bills.' },
+  { title: 'Switch mid-thread',  desc: 'Pick a different model at any turn — same conversation, different brain.' },
+  { title: 'Tailwind-powered',   desc: 'Output uses Tailwind CSS via CDN — utility classes, mobile-first defaults, real desktop layouts out of the box.' },
+  { title: 'Yours to export',    desc: 'Download a single-page HTML file. Host anywhere, edit anything.' },
+  { title: 'Iterative by chat',  desc: 'Refine via follow-up prompts. Undo a turn, regenerate with a different style.' },
+  { title: 'Live preview',       desc: 'Watch the page build in the iframe as the model writes it, not after.' },
 ];
 
 export default function LandingPage() {
