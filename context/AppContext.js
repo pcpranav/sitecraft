@@ -1,8 +1,29 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 
 const AppContext = createContext();
+
+// Storage keys. The legacy WEBCRAFT_* keys predate the Sitecraft rename;
+// readStorage falls back to them once, then writes under the new key so
+// returning users don't lose their settings.
+const STORAGE = {
+  model:   { current: 'SITECRAFT_MODEL',   legacy: 'WEBCRAFT_MODEL' },
+  theme:   { current: 'SITECRAFT_THEME',   legacy: 'WEBCRAFT_THEME' },
+  project: { current: 'SITECRAFT_PROJECT', legacy: 'WEBCRAFT_PROJECT' },
+};
+
+function readStorage(store, key) {
+  if (typeof window === 'undefined') return null;
+  const fromCurrent = store.getItem(key.current);
+  if (fromCurrent != null) return fromCurrent;
+  const fromLegacy = store.getItem(key.legacy);
+  if (fromLegacy != null) {
+    store.setItem(key.current, fromLegacy);
+    store.removeItem(key.legacy);
+  }
+  return fromLegacy;
+}
 
 export function AppProvider({ children }) {
   const { data: session } = useSession();
@@ -56,14 +77,21 @@ export function AppProvider({ children }) {
       'deepseek/deepseek-v4-flash:free', // OpenRouter free upstream rate-limited
     ]);
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('WEBCRAFT_MODEL');
+      const saved = readStorage(localStorage, STORAGE.model);
       if (saved && !DEPRECATED_MODEL_IDS.has(saved)) return saved;
     }
     return DEFAULT;
   });
 
+  // Persist model selection whenever it changes. Avoids the duplicate
+  // localStorage.setItem call that used to live inside the picker onClick.
   useEffect(() => {
-    const savedTheme = localStorage.getItem('WEBCRAFT_THEME');
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(STORAGE.model.current, selectedModel);
+  }, [selectedModel]);
+
+  useEffect(() => {
+    const savedTheme = readStorage(localStorage, STORAGE.theme);
     if (savedTheme) {
       setTheme(savedTheme);
       document.documentElement.setAttribute('data-theme', savedTheme);
@@ -72,7 +100,7 @@ export function AppProvider({ children }) {
     }
 
     try {
-      const raw = sessionStorage.getItem('WEBCRAFT_PROJECT');
+      const raw = readStorage(sessionStorage, STORAGE.project);
       if (raw) {
         const data = JSON.parse(raw);
         setPages(data.pages || {});
@@ -86,12 +114,20 @@ export function AppProvider({ children }) {
     } catch(e) {}
   }, []);
 
+  // Debounce sessionStorage writes — without this we serialize project state
+  // on every keystroke / state tick, which gets heavy on long conversations.
+  const projectSaveTimer = useRef(null);
   useEffect(() => {
-    try {
-      sessionStorage.setItem('WEBCRAFT_PROJECT', JSON.stringify({
-        pages, css, js, desc, totalTokens, currentHtml, features
-      }));
-    } catch(e) {}
+    if (typeof window === 'undefined') return;
+    clearTimeout(projectSaveTimer.current);
+    projectSaveTimer.current = setTimeout(() => {
+      try {
+        sessionStorage.setItem(STORAGE.project.current, JSON.stringify({
+          pages, css, js, desc, totalTokens, currentHtml, features
+        }));
+      } catch(e) {}
+    }, 300);
+    return () => clearTimeout(projectSaveTimer.current);
   }, [pages, css, js, desc, totalTokens, currentHtml, features]);
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
+import Icon from '@/components/Icon';
 
 const MODELS = [
   { id: 'gpt-oss-120b', provider: 'cerebras', name: 'Cerebras · GPT-OSS 120B', desc: '120B MoE · fastest large-model inference', color: '#f97316' },
@@ -34,18 +35,10 @@ const TONE_PRESETS = [
 ];
 
 const LOADING_MESSAGES = [
-  'Understanding your vision...',
-  'Designing the layout...',
-  'Choosing the perfect color palette...',
-  'Crafting the typography...',
-  'Building the structure...',
-  'Writing clean HTML & CSS...',
-  'Adding interactive elements...',
-  'Making it responsive...',
-  'Polishing every detail...',
-  'Adding the finishing touches...',
-  'Almost ready for you...',
-  'Just a moment longer...',
+  'Drafting layout',
+  'Writing HTML',
+  'Styling and motion',
+  'Finalizing',
 ];
 
 const STARTER_PROMPTS = [
@@ -63,9 +56,15 @@ function PresetSelect({ value, options, onChange, label }) {
   const current = options.find(o => o.id === value) || options[0];
 
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    if (open) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    if (!open) return;
+    const handleClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const handleKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
   }, [open]);
 
   return (
@@ -73,10 +72,7 @@ function PresetSelect({ value, options, onChange, label }) {
       <span className="preset-label">{label}</span>
       <button type="button" className="preset-trigger" onClick={() => setOpen(!open)}>
         <span>{current.label}</span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-          style={{ transform: open ? 'rotate(180deg)' : '', transition: 'transform .15s' }}>
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
+        <Icon name="chevron" size={10} stroke={2.5} style={{ transform: open ? 'rotate(180deg)' : '', transition: 'transform .15s' }} />
       </button>
       {open && (
         <div className="preset-dropdown">
@@ -117,6 +113,32 @@ export default function Sidebar() {
   const chatEndRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
+  const modelPickerRef = useRef(null);
+  const featuresBarRef = useRef(null);
+
+  // Close model picker / features dropdown on outside-click or Escape.
+  useEffect(() => {
+    if (!modelOpen && !showFeatures) return;
+    const handleClick = (e) => {
+      if (modelOpen && modelPickerRef.current && !modelPickerRef.current.contains(e.target)) {
+        setModelOpen(false);
+      }
+      if (showFeatures && featuresBarRef.current && !featuresBarRef.current.contains(e.target)) {
+        setShowFeatures(false);
+      }
+    };
+    const handleKey = (e) => {
+      if (e.key !== 'Escape') return;
+      setModelOpen(false);
+      setShowFeatures(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [modelOpen, showFeatures]);
 
   const currentModel = MODELS.find(m => m.id === selectedModel) || MODELS[0];
   const hasConversation = chatMessages.length > 0;
@@ -165,14 +187,17 @@ export default function Sidebar() {
     if (loading) return;
     const lastUser = [...chatMessages].reverse().find(m => m.role === 'user');
     if (!lastUser) return;
-    // Drop the last assistant turn (and its preceding user turn) so sendMessage
-    // can replay the same prompt cleanly.
+    // Trim back to the state BEFORE the last user prompt, then re-send it as a
+    // fresh generation. We must pass the baseline explicitly because
+    // setChatMessages is async and sendMessage would otherwise read the stale
+    // pre-trim closure value, treating the re-run as a follow-up edit.
     const lastAssistantIdx = chatMessages.map(m => m.role).lastIndexOf('assistant');
+    let baseline = chatMessages;
     if (lastAssistantIdx >= 0) {
-      const trimmed = chatMessages.slice(0, lastAssistantIdx).filter(m => m.id !== lastUser.id);
-      setChatMessages(trimmed);
+      baseline = chatMessages.slice(0, lastAssistantIdx).filter(m => m.id !== lastUser.id);
+      setChatMessages(baseline);
     }
-    sendMessage(lastUser.content);
+    sendMessage(lastUser.content, { baselineMessages: baseline, regenerate: true });
   };
 
   const undoLastTurn = () => {
@@ -235,29 +260,38 @@ export default function Sidebar() {
     }
   };
 
-  const sendMessage = async (messageText) => {
+  const sendMessage = async (messageText, options = {}) => {
+    const { baselineMessages, regenerate = false } = options;
     const text = (messageText || input).trim();
     if (!text || loading) return;
     setInput('');
     // Auto-close sidebar on mobile so user sees the preview
     if (window.innerWidth <= 768) setSidebarOpen(false);
 
-    const isFirst = chatMessages.length === 0;
-    if (isFirst) setDesc(text);
+    // baselineMessages lets regenerate pass the explicitly-trimmed history
+    // since setState is async — reading chatMessages here gives stale data.
+    const baseline = baselineMessages ?? chatMessages;
+    // Regenerate is treated as a fresh first turn: we do NOT want to seed the
+    // newly-selected model with the prior model's HTML, otherwise it just
+    // reproduces the same design.
+    const isFirst = baseline.length === 0 || regenerate;
+    if (isFirst && !baselineMessages) setDesc(text);
 
     // Add user message
     const userMsg = { id: Date.now(), role: 'user', content: text, timestamp: Date.now(), model: selectedModel };
-    const updatedMessages = [...chatMessages, userMsg];
+    const updatedMessages = [...baseline, userMsg];
     setChatMessages(updatedMessages);
 
     setLoading(true);
     setLoadingMsg(LOADING_MESSAGES[0]);
 
+    // Cycle through the loading phrases over ~20s, then hold on the final one
+    // so long generations don't show the same string flashing repeatedly.
     let msgIdx = 0;
     const interval = setInterval(() => {
       msgIdx++;
       setLoadingMsg(LOADING_MESSAGES[Math.min(msgIdx, LOADING_MESSAGES.length - 1)]);
-    }, 3000);
+    }, 5000);
 
     try {
       const model = MODELS.find(m => m.id === selectedModel) || MODELS[0];
@@ -413,7 +447,9 @@ export default function Sidebar() {
     setImageUrls([]);
     setInput('');
     setProjectId(null);
-    sessionStorage.removeItem('WEBCRAFT_PROJECT');
+    setTotalTokens(0);
+    sessionStorage.removeItem('SITECRAFT_PROJECT');
+    sessionStorage.removeItem('WEBCRAFT_PROJECT'); // legacy
   };
 
   return (
@@ -424,7 +460,7 @@ export default function Sidebar() {
         {/* Sidebar Header */}
         <div className="sb-top">
           <button className="sb-new-btn" onClick={startNew}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <Icon name="plus" size={14} />
             New website
           </button>
           {!user && (
@@ -516,13 +552,13 @@ export default function Sidebar() {
                   <button className="quick-action-chip primary" onClick={undoLastTurn} title="Drop the last turn and restore the previous version" disabled={history.length < 2}>
                     ↶ Undo
                   </button>
-                  <button className="quick-action-chip" onClick={() => sendMessage('Add more high-quality images throughout the website. Use different images for each section.')}>
-                    + Add more images
+                  <button className="quick-action-chip" onClick={() => sendMessage('Add more imagery throughout the page; use a different image in each section.')}>
+                    + Add images
                   </button>
-                  <button className="quick-action-chip" onClick={() => sendMessage('Replace all placeholder or broken images with working, relevant images. Make sure every image loads correctly.')}>
+                  <button className="quick-action-chip" onClick={() => sendMessage('Replace any broken or missing images with working images from the curated list.')}>
                     Fix images
                   </button>
-                  <button className="quick-action-chip" onClick={() => sendMessage('Make the design more polished - improve spacing, typography, and color consistency')}>
+                  <button className="quick-action-chip" onClick={() => sendMessage('Tighten the design — improve spacing rhythm, typographic hierarchy, and color consistency.')}>
                     Polish design
                   </button>
                 </div>
@@ -535,12 +571,12 @@ export default function Sidebar() {
 
         {/* Feature pills when in conversation */}
         {hasConversation && (
-          <div className="chat-features-bar">
+          <div className="chat-features-bar" ref={featuresBarRef}>
             <button
               className="chat-features-toggle"
               onClick={() => setShowFeatures(!showFeatures)}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <Icon name="settings" size={14} />
               Features {features.length > 0 && <span className="feature-count">{features.length}</span>}
             </button>
             {showFeatures && (
@@ -585,7 +621,7 @@ export default function Sidebar() {
           <div className="chat-input-row">
             <div className="chat-input-actions">
               <button className="chat-action-btn" onClick={() => fileInputRef.current?.click()} title="Upload image">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <Icon name="image" size={16} />
               </button>
               <input
                 ref={fileInputRef}
@@ -614,44 +650,46 @@ export default function Sidebar() {
               {loading ? (
                 <div className="send-spinner"></div>
               ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                <Icon name="send" size={16} />
               )}
             </button>
           </div>
 
           {/* Model selector */}
           <div className="chat-bottom-bar">
-            <button
-              className="model-select-btn"
-              onClick={() => setModelOpen(!modelOpen)}
-              title="Outputs are single-page HTML drafts. Don't expect pixel-perfect or backend-connected sites."
-            >
-              <span className="model-dot-sm" style={{ background: currentModel.color }}></span>
-              <span>{currentModel.name}</span>
-              <span className="chevron" style={{ transform: modelOpen ? 'rotate(180deg)' : '' }}>▾</span>
-            </button>
-            {modelOpen && (
-              <div className="model-dropdown-chat">
-                {MODELS.map(m => (
-                  <button
-                    key={m.id}
-                    className={`model-dropdown-item ${selectedModel === m.id ? 'active' : ''}`}
-                    onClick={() => {
-                      setSelectedModel(m.id);
-                      localStorage.setItem('WEBCRAFT_MODEL', m.id);
-                      setModelOpen(false);
-                    }}
-                  >
-                    <span className="model-dot-sm" style={{ background: m.color }}></span>
-                    <div>
-                      <div className="model-dropdown-name">{m.name}</div>
-                      <div className="model-dropdown-desc">{m.desc}</div>
-                    </div>
-                    {selectedModel === m.id && <span style={{ marginLeft: 'auto', color: 'var(--green)' }}>✓</span>}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="model-picker-wrap" ref={modelPickerRef}>
+              <button
+                className="model-select-btn"
+                onClick={() => setModelOpen(!modelOpen)}
+                title="Outputs are single-page HTML drafts. Don't expect pixel-perfect or backend-connected sites."
+              >
+                <span className="model-dot-sm" style={{ background: currentModel.color }}></span>
+                <span>{currentModel.name}</span>
+                <Icon name="chevron" size={12} stroke={2.5} className="chevron"
+                  style={{ transform: modelOpen ? 'rotate(180deg)' : '', transition: 'transform .15s' }} />
+              </button>
+              {modelOpen && (
+                <div className="model-dropdown-chat">
+                  {MODELS.map(m => (
+                    <button
+                      key={m.id}
+                      className={`model-dropdown-item ${selectedModel === m.id ? 'active' : ''}`}
+                      onClick={() => {
+                        setSelectedModel(m.id);
+                        setModelOpen(false);
+                      }}
+                    >
+                      <span className="model-dot-sm" style={{ background: m.color }}></span>
+                      <div>
+                        <div className="model-dropdown-name">{m.name}</div>
+                        <div className="model-dropdown-desc">{m.desc}</div>
+                      </div>
+                      {selectedModel === m.id && <span style={{ marginLeft: 'auto', color: 'var(--green)' }}>✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <span className="token-count">{totalTokens > 0 ? `${(totalTokens / 1000).toFixed(1)}k tokens` : ''}</span>
           </div>
         </div>

@@ -124,22 +124,11 @@ export async function POST(req) {
           });
 
           const rawText = (result.content?.[0]?.text || '').trim();
+          const html = extractHtml(rawText);
 
-          let html = rawText;
-          const fenceMatch = html.match(/```[a-zA-Z]*\s*\n?([\s\S]*?)\n?```/);
-          if (fenceMatch) html = fenceMatch[1].trim();
-
-          const lower = html.toLowerCase();
-          const docIdx = lower.indexOf('<!doctype');
-          const htmlIdx = lower.indexOf('<html');
-          const startIdx = docIdx !== -1 ? docIdx : htmlIdx;
-          if (startIdx > 0) html = html.slice(startIdx);
-
-          const endIdx = html.toLowerCase().lastIndexOf('</html>');
-          if (endIdx !== -1) html = html.slice(0, endIdx + 7);
-
-          if (!html || (!lower.includes('<!doctype') && !lower.includes('<html'))) {
-            throw new Error('Model returned non-HTML output. Try rephrasing your prompt.');
+          if (!html) {
+            const snippet = rawText.slice(0, 200).replace(/\s+/g, ' ');
+            throw new Error(`Model returned non-HTML output${snippet ? `: "${snippet}…"` : '.'} Try rephrasing your prompt or switching models.`);
           }
 
           send({ html, tokens: result.usage?.output_tokens || 0, done: true });
@@ -163,7 +152,52 @@ export async function POST(req) {
   }
 }
 
+// ── HTML EXTRACTION ───────────────────────────────────────────────────────
+// Strip any markdown fencing or commentary the model wrapped around its HTML.
+// Earlier this grabbed the FIRST fenced block, which broke when a model
+// emitted an explanation snippet before the actual HTML. Now we prefer the
+// largest fenced block containing HTML markers, then fall back to slicing
+// from the first <!doctype/<html to the last </html>.
+function extractHtml(rawText) {
+  if (!rawText) return '';
+
+  const fenceRe = /```[a-zA-Z]*\s*\n?([\s\S]*?)\n?```/g;
+  const blocks = [];
+  let m;
+  while ((m = fenceRe.exec(rawText)) !== null) blocks.push(m[1].trim());
+
+  const looksLikeHtml = (s) => {
+    const l = s.toLowerCase();
+    return l.includes('<!doctype') || l.includes('<html');
+  };
+
+  let candidate = rawText;
+  if (blocks.length) {
+    const htmlBlocks = blocks.filter(looksLikeHtml);
+    if (htmlBlocks.length) {
+      candidate = htmlBlocks.reduce((a, b) => (b.length > a.length ? b : a));
+    } else if (blocks.length === 1) {
+      candidate = blocks[0];
+    }
+  }
+
+  const lower = candidate.toLowerCase();
+  const docIdx = lower.indexOf('<!doctype');
+  const htmlIdx = lower.indexOf('<html');
+  const startIdx = docIdx !== -1 ? docIdx : htmlIdx;
+  if (startIdx > 0) candidate = candidate.slice(startIdx);
+
+  const endIdx = candidate.toLowerCase().lastIndexOf('</html>');
+  if (endIdx !== -1) candidate = candidate.slice(0, endIdx + 7);
+
+  if (!looksLikeHtml(candidate)) return '';
+  return candidate.trim();
+}
+
 // ── OpenAI-compatible call (Groq, Cerebras, OpenRouter, Cloudflare) ───────
+// One retry on 429/5xx with a short backoff. Most free-tier failures are
+// transient capacity issues — a single retry absorbs the majority of them
+// without spinning up a serious retry library.
 async function callOpenAICompat({ providerCfg, model, system, messages, max_tokens }) {
   const resolved = providerCfg.resolve();
   if (resolved.error) throw Object.assign(new Error(resolved.error), { status: 503 });
@@ -176,18 +210,36 @@ async function callOpenAICompat({ providerCfg, model, system, messages, max_toke
   const requestBody = { model, messages: chatMessages };
   if (max_tokens) requestBody.max_tokens = max_tokens;
 
-  const res = await fetch(`${baseURL}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(requestBody),
-  });
+  const attempt = async () => {
+    const res = await fetch(`${baseURL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
+    const rawBody = await res.text();
+    let data = null;
+    try { data = rawBody ? JSON.parse(rawBody) : null; } catch {}
+    return { res, data, rawBody };
+  };
 
-  let data;
-  try { data = await res.json(); } catch { throw new Error(`${providerCfg.label} returned invalid JSON (${res.status})`); }
-  if (!res.ok) throw new Error(data.error?.message || data.error || `${providerCfg.label} error ${res.status}`);
+  let { res, data, rawBody } = await attempt();
+  const isRetryable = !res.ok && (res.status === 429 || res.status >= 500);
+  if (isRetryable) {
+    await new Promise(r => setTimeout(r, 1500));
+    ({ res, data, rawBody } = await attempt());
+  }
+
+  if (!res.ok) {
+    const upstream =
+      data?.error?.message ||
+      (typeof data?.error === 'string' ? data.error : null) ||
+      (rawBody ? rawBody.slice(0, 200).replace(/\s+/g, ' ') : null);
+    throw new Error(`${providerCfg.label} error ${res.status}${upstream ? `: ${upstream}` : ''}`);
+  }
+  if (!data) throw new Error(`${providerCfg.label} returned invalid JSON (${res.status})`);
 
   const text = data.choices?.[0]?.message?.content ?? '';
   return {
