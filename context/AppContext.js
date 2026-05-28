@@ -40,6 +40,11 @@ export function AppProvider({ children }) {
   // Current website HTML (latest generated)
   const [currentHtml, setCurrentHtml] = useState('');
 
+  // In-flight partial HTML while a generation is streaming. PreviewFrame
+  // uses this in place of currentHtml so the iframe fills in as the model
+  // writes. Cleared when the stream completes (or fails).
+  const [streamingHtml, setStreamingHtml] = useState('');
+
   // Feature toggles
   const [features, setFeatures] = useState([]);
 
@@ -138,6 +143,7 @@ export function AppProvider({ children }) {
     selectedModel, setSelectedModel,
     chatMessages, setChatMessages,
     currentHtml, setCurrentHtml,
+    streamingHtml, setStreamingHtml,
     features, setFeatures,
     imageUrls, setImageUrls,
   };

@@ -93,32 +93,43 @@ export default function LandingPage() {
         </div>
 
         <div className="hero-mockup">
-          <div className="mockup-header">
-            <div className="traffic-lights">
-              <div className="tl tl-r"></div>
-              <div className="tl tl-y"></div>
-              <div className="tl tl-g"></div>
-            </div>
-            <div className="mockup-url">sitecraft / studio</div>
+          {/* Prompt → output. Doesn't pretend to be the studio chrome; shows
+              the value prop instead: a sentence in, a real-looking page out. */}
+          <div className="mock-prompt-row">
+            <span className="mock-prompt-tag">prompt</span>
+            <span className="mock-prompt-text">
+              A creative portfolio for a freelance designer, with project gallery and contact
+            </span>
           </div>
-          <div className="mockup-body">
-            <div className="mockup-sidebar">
-              <div className="mock-sidebar-label"></div>
-              <div className="mock-sb-item active"></div>
-              <div className="mock-sb-item"></div>
-              <div className="mock-sb-item"></div>
-              <div className="mock-sb-label2"></div>
-              <div className="mock-prompt"></div>
-              <div className="mock-btn"></div>
+          <div className="mock-window">
+            <div className="mockup-header">
+              <div className="traffic-lights">
+                <div className="tl tl-r"></div>
+                <div className="tl tl-y"></div>
+                <div className="tl tl-g"></div>
+              </div>
+              <div className="mockup-url">elenavoss.design</div>
             </div>
-            <div className="mockup-preview">
-              <div className="mock-h1"></div>
-              <div className="mock-line"></div>
-              <div className="mock-line short"></div>
-              <div className="mock-cards">
-                <div className="mock-card"></div>
-                <div className="mock-card"></div>
-                <div className="mock-card"></div>
+            <div className="mock-site">
+              <div className="mock-site-nav">
+                <span className="mock-site-name">elena voss</span>
+                <span className="mock-site-link">work</span>
+                <span className="mock-site-link">about</span>
+                <span className="mock-site-link active">contact</span>
+              </div>
+              <div className="mock-site-hero">
+                <p className="mock-site-eyebrow">FREELANCE DESIGN · 2026</p>
+                <h3 className="mock-site-headline">Brand systems<br/>for ambitious teams.</h3>
+                <div className="mock-site-meta">
+                  <span className="mock-site-meta-item">12 selected projects</span>
+                  <span className="mock-site-meta-dot">·</span>
+                  <span className="mock-site-meta-item">based in Lisbon</span>
+                </div>
+              </div>
+              <div className="mock-site-grid">
+                <div className="mock-site-tile" style={{ background: 'linear-gradient(135deg, #f59e0b, #f43f5e)' }}></div>
+                <div className="mock-site-tile" style={{ background: 'linear-gradient(135deg, #06b6d4, #6366f1)' }}></div>
+                <div className="mock-site-tile" style={{ background: 'linear-gradient(135deg, #10b981, #0891b2)' }}></div>
               </div>
             </div>
           </div>

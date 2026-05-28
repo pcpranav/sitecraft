@@ -9,14 +9,18 @@ const VIEWPORTS = {
 };
 
 export default function PreviewFrame() {
-  const { currentHtml, view, setCurrentHtml } = useAppContext();
+  const { currentHtml, streamingHtml, view, setCurrentHtml } = useAppContext();
   const iframeRef = useRef(null);
   const [imageStatus, setImageStatus] = useState(null); // { total, loaded, failed, failedSrcs }
   const [showImagePanel, setShowImagePanel] = useState(false);
   const [viewport, setViewport] = useState('desktop');
 
-  const hasContent = !!currentHtml;
-  const displayHtml = currentHtml || '';
+  // While a generation is streaming, the partial HTML takes over the iframe so
+  // the user sees the page build up in real time. Once Sidebar clears it on
+  // stream completion, currentHtml resumes ownership.
+  const isStreaming = !!streamingHtml;
+  const displayHtml = streamingHtml || currentHtml || '';
+  const hasContent = !!displayHtml;
 
   const handleCodeChange = (e) => setCurrentHtml(e.target.value);
   const getCodeValue = () => currentHtml || '';
@@ -52,14 +56,16 @@ export default function PreviewFrame() {
 
   useEffect(() => {
     if (!displayHtml || view !== 'preview') return;
-    // Reset status when HTML changes
     setImageStatus(null);
     setShowImagePanel(false);
-    // Check after iframe loads
+    // Don't run image checks while streaming — the page isn't finished
+    // yet, half the <img> tags don't exist, and the iframe is reloading
+    // every second anyway.
+    if (isStreaming) return;
     const timer = setTimeout(checkImages, 2000);
     const timer2 = setTimeout(checkImages, 5000);
     return () => { clearTimeout(timer); clearTimeout(timer2); };
-  }, [displayHtml, view, checkImages]);
+  }, [displayHtml, view, checkImages, isStreaming]);
 
   const handleIframeLoad = () => {
     setTimeout(checkImages, 1000);
@@ -138,6 +144,12 @@ export default function PreviewFrame() {
               title="Preview"
               onLoad={handleIframeLoad}
             />
+            {isStreaming && (
+              <div className="streaming-badge">
+                <span className="streaming-dot"></span>
+                Live preview
+              </div>
+            )}
           </div>
           {/* Image status bar */}
           {imageStatus && imageStatus.total > 0 && (

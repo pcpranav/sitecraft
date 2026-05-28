@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { buildSystemPrompt } from '@/lib/system-prompt';
 import { DEFAULT_MODEL_ID } from '@/lib/models';
+import { extractHtml } from '@/lib/html-extract';
 
 // Extend serverless function timeout. Vercel clamps this to plan max:
 // Hobby = 60s, Pro = 300s, Enterprise = 900s. Setting 300 lets Pro+ use
@@ -133,9 +134,12 @@ export async function POST(req) {
           try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)); } catch {}
         };
 
-        // Throttle progress events to the client — sending one per upstream
-        // delta would be 100s of events/sec. ~5/sec is enough for a fluid feel.
-        let lastProgress = 0;
+        // Two-tier progress throttling:
+        //   light  (chars only, 200ms)  — drives the live "Writing… 4.5k chars" indicator
+        //   heavy  (chars + full text, 1000ms) — drives the live iframe preview
+        // Sending full text every 200ms would be wasteful (40KB+/sec of redundant payload).
+        let lastLight = 0;
+        let lastHeavy = 0;
 
         try {
           const result = await streamOpenAICompat({
@@ -145,11 +149,16 @@ export async function POST(req) {
             messages: finalMessages,
             max_tokens,
             signal: abortCtrl.signal,
-            onDelta: (_delta, totalChars) => {
+            onDelta: (_delta, fullText) => {
               const now = Date.now();
-              if (now - lastProgress < 200) return;
-              lastProgress = now;
-              send({ progress: true, chars: totalChars });
+              if (now - lastHeavy >= 1000) {
+                send({ progress: true, chars: fullText.length, text: fullText });
+                lastHeavy = now;
+                lastLight = now;
+              } else if (now - lastLight >= 200) {
+                send({ progress: true, chars: fullText.length });
+                lastLight = now;
+              }
             },
           });
 
@@ -182,47 +191,8 @@ export async function POST(req) {
   }
 }
 
-// ── HTML EXTRACTION ───────────────────────────────────────────────────────
-// Strip any markdown fencing or commentary the model wrapped around its HTML.
-// Earlier this grabbed the FIRST fenced block, which broke when a model
-// emitted an explanation snippet before the actual HTML. Now we prefer the
-// largest fenced block containing HTML markers, then fall back to slicing
-// from the first <!doctype/<html to the last </html>.
-function extractHtml(rawText) {
-  if (!rawText) return '';
-
-  const fenceRe = /```[a-zA-Z]*\s*\n?([\s\S]*?)\n?```/g;
-  const blocks = [];
-  let m;
-  while ((m = fenceRe.exec(rawText)) !== null) blocks.push(m[1].trim());
-
-  const looksLikeHtml = (s) => {
-    const l = s.toLowerCase();
-    return l.includes('<!doctype') || l.includes('<html');
-  };
-
-  let candidate = rawText;
-  if (blocks.length) {
-    const htmlBlocks = blocks.filter(looksLikeHtml);
-    if (htmlBlocks.length) {
-      candidate = htmlBlocks.reduce((a, b) => (b.length > a.length ? b : a));
-    } else if (blocks.length === 1) {
-      candidate = blocks[0];
-    }
-  }
-
-  const lower = candidate.toLowerCase();
-  const docIdx = lower.indexOf('<!doctype');
-  const htmlIdx = lower.indexOf('<html');
-  const startIdx = docIdx !== -1 ? docIdx : htmlIdx;
-  if (startIdx > 0) candidate = candidate.slice(startIdx);
-
-  const endIdx = candidate.toLowerCase().lastIndexOf('</html>');
-  if (endIdx !== -1) candidate = candidate.slice(0, endIdx + 7);
-
-  if (!looksLikeHtml(candidate)) return '';
-  return candidate.trim();
-}
+// extractHtml lives in @/lib/html-extract so both this route and the
+// frontend (for in-flight partial preview) can use the same logic.
 
 // ── OpenAI-compatible streaming call ──────────────────────────────────────
 // Requests stream:true upstream, parses the SSE response, calls onDelta for
@@ -295,7 +265,7 @@ async function streamOpenAICompat({ providerCfg, model, system, messages, max_to
         const delta = json.choices?.[0]?.delta?.content;
         if (delta) {
           fullText += delta;
-          if (onDelta) onDelta(delta, fullText.length);
+          if (onDelta) onDelta(delta, fullText);
         }
         if (json.usage) {
           usage = {

@@ -5,6 +5,7 @@ import Icon from '@/components/Icon';
 import BrandMark from '@/components/BrandMark';
 import { MODELS } from '@/lib/models';
 import { pushHistory, popHistory } from '@/lib/history';
+import { extractPartialHtml } from '@/lib/html-extract';
 
 const FEATURE_OPTIONS = [
   { id: 'contact-form', label: 'Contact Form', icon: '📝', desc: 'Contact or feedback form' },
@@ -122,6 +123,7 @@ export default function Sidebar() {
     projectId, setProjectId, user, totalTokens, setTotalTokens,
     setIsAuthOpen, sidebarOpen, setSidebarOpen, selectedModel, setSelectedModel,
     chatMessages, setChatMessages, currentHtml, setCurrentHtml,
+    setStreamingHtml,
     features, setFeatures, imageUrls, setImageUrls,
   } = useAppContext();
 
@@ -377,10 +379,11 @@ export default function Sidebar() {
         throw new Error(errMsg);
       }
 
-      // Parse SSE stream. The route emits two kinds of events:
-      //   { progress: true, chars: N }    — live token-write progress
-      //   { html, tokens, done: true }    — final result
-      //   { error, done: true }           — final error
+      // Parse SSE stream. The route emits these event shapes:
+      //   { progress: true, chars: N }              — light, ~5/sec (chars only)
+      //   { progress: true, chars: N, text: '...' } — heavy, ~1/sec (drives live iframe)
+      //   { html, tokens, done: true }              — final result
+      //   { error, done: true }                     — final error
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -399,6 +402,12 @@ export default function Sidebar() {
                 const chars = json.chars || 0;
                 const fmt = chars < 1000 ? `${chars}` : `${(chars / 1000).toFixed(1)}k`;
                 setLoadingMsg(`Writing… ${fmt} chars`);
+                if (json.text) {
+                  // Best-effort partial extraction — the iframe will render
+                  // whatever HTML structure has streamed so far.
+                  const partial = extractPartialHtml(json.text);
+                  if (partial) setStreamingHtml(partial);
+                }
               } else {
                 finalData = json;
               }
@@ -454,6 +463,9 @@ export default function Sidebar() {
     } finally {
       clearInterval(interval);
       setLoading(false);
+      // The final HTML (or the error path) takes over the iframe; clear
+      // the streaming buffer so it doesn't fight with currentHtml.
+      setStreamingHtml('');
     }
   };
 
