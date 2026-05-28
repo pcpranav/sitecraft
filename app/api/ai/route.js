@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { buildSystemPrompt } from '@/lib/system-prompt';
+import { DEFAULT_MODEL_ID } from '@/lib/models';
 
 // Extend serverless function timeout. Vercel clamps this to plan max:
 // Hobby = 60s, Pro = 300s, Enterprise = 900s. Setting 300 lets Pro+ use
@@ -73,7 +74,7 @@ export async function POST(req) {
 
   const {
     provider = 'cerebras',
-    model = 'gpt-oss-120b',
+    model = DEFAULT_MODEL_ID,
     messages,
     // Default high enough to fit a substantive single-page site; without this
     // some providers default to ~1K and clip the HTML mid-tag → blank preview.

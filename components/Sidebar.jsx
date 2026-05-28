@@ -2,13 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import Icon from '@/components/Icon';
-
-const MODELS = [
-  { id: 'gpt-oss-120b', provider: 'cerebras', name: 'Cerebras · GPT-OSS 120B', desc: '120B MoE · fastest large-model inference', color: '#f97316' },
-  { id: 'openrouter/free', provider: 'openrouter', name: 'OpenRouter · Free Auto', desc: 'Auto-routes across ~24 free models · resilient to upstream throttling', color: '#10b981' },
-  { id: 'meta-llama/llama-4-scout-17b-16e-instruct', provider: 'groq', name: 'Groq · Llama 4 Scout', desc: '17B-active MoE · 750 tok/s', color: '#eab308' },
-  { id: '@cf/qwen/qwen3-30b-a3b-fp8', provider: 'cloudflare', name: 'Cloudflare · Qwen3 30B', desc: '30B MoE · 3B active · fast', color: '#f59e0b' },
-];
+import BrandMark from '@/components/BrandMark';
+import { MODELS } from '@/lib/models';
+import { pushHistory, popHistory } from '@/lib/history';
 
 const FEATURE_OPTIONS = [
   { id: 'contact-form', label: 'Contact Form', icon: '📝', desc: 'Contact or feedback form' },
@@ -50,6 +46,26 @@ const STARTER_PROMPTS = [
   { label: 'Startup', prompt: 'A bold tech startup landing page with animated hero, team section, pricing, and integrations' },
 ];
 
+// Keyboard navigation for single-select dropdowns. ArrowUp/Down move the
+// focused index, Enter commits, Escape closes (the outside-click effect
+// elsewhere also handles Escape — having both is fine, they no-op when
+// the dropdown is already closed).
+function useArrowKeys({ open, count, onSelect, onClose }) {
+  const [active, setActive] = useState(0);
+  useEffect(() => { if (open) setActive(0); }, [open]);
+  useEffect(() => {
+    if (!open || count === 0) return;
+    const handler = (e) => {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setActive(i => (i + 1) % count); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(i => (i - 1 + count) % count); }
+      else if (e.key === 'Enter') { e.preventDefault(); onSelect(active); onClose(); }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, count, active, onSelect, onClose]);
+  return active;
+}
+
 function PresetSelect({ value, options, onChange, label }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -67,6 +83,13 @@ function PresetSelect({ value, options, onChange, label }) {
     };
   }, [open]);
 
+  const activeIdx = useArrowKeys({
+    open,
+    count: options.length,
+    onSelect: (i) => onChange(options[i].id),
+    onClose: () => setOpen(false),
+  });
+
   return (
     <div className="preset-field" ref={ref}>
       <span className="preset-label">{label}</span>
@@ -75,12 +98,12 @@ function PresetSelect({ value, options, onChange, label }) {
         <Icon name="chevron" size={10} stroke={2.5} style={{ transform: open ? 'rotate(180deg)' : '', transition: 'transform .15s' }} />
       </button>
       {open && (
-        <div className="preset-dropdown">
-          {options.map(opt => (
+        <div className="preset-dropdown" role="listbox">
+          {options.map((opt, i) => (
             <button
               key={opt.id}
               type="button"
-              className={`preset-option ${opt.id === value ? 'active' : ''}`}
+              className={`preset-option ${opt.id === value ? 'active' : ''} ${i === activeIdx ? 'kbd-focus' : ''}`}
               onClick={() => { onChange(opt.id); setOpen(false); }}
             >
               {opt.label}
@@ -142,6 +165,12 @@ export default function Sidebar() {
 
   const currentModel = MODELS.find(m => m.id === selectedModel) || MODELS[0];
   const hasConversation = chatMessages.length > 0;
+  const modelActiveIdx = useArrowKeys({
+    open: modelOpen,
+    count: MODELS.length,
+    onSelect: (i) => setSelectedModel(MODELS[i].id),
+    onClose: () => setModelOpen(false),
+  });
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -211,14 +240,13 @@ export default function Sidebar() {
     }
     setChatMessages(trimmed);
 
-    // Restore HTML from the previous history entry (history[0] is the current state).
-    const prev = history[1];
-    if (prev) {
-      setCurrentHtml(prev.pages?.['index.html'] || '');
-      setPages(prev.pages || {});
-      setCss(prev.css || '');
-      setJs(prev.js || '');
-      setHistory(history.slice(1));
+    const { previous, rest } = popHistory(history);
+    if (previous) {
+      setCurrentHtml(previous.pages?.['index.html'] || '');
+      setPages(previous.pages || {});
+      setCss(previous.css || '');
+      setJs(previous.js || '');
+      setHistory(rest);
     } else {
       setCurrentHtml('');
       setPages({});
@@ -404,9 +432,9 @@ export default function Sidebar() {
       setCurrentFile('index.html');
       setTotalTokens(prev => prev + (data.tokens || 0));
 
-      const newHistory = [{
+      const newHistory = pushHistory(history, {
         prompt: text, pages: { 'index.html': html }, css: '', js: '', ts: Date.now()
-      }, ...history];
+      });
       setHistory(newHistory);
       // Pass `desc || text` so the first-turn project name comes from the user's
       // prompt instead of the empty stale `desc` state.
@@ -472,7 +500,7 @@ export default function Sidebar() {
         <div className="chat-scroll">
           {!hasConversation ? (
             <div className="chat-empty">
-              <div className="chat-empty-icon">S</div>
+              <BrandMark size={48} className="chat-empty-icon" />
               <h3>What do you want to build?</h3>
               <p>Describe any website idea. Works best for landing pages, portfolios, and simple brochures. Keep refining with follow-up messages.</p>
 
@@ -514,7 +542,7 @@ export default function Sidebar() {
               {chatMessages.map(msg => (
                 <div key={msg.id} className={`chat-msg ${msg.role} ${msg.isError ? 'error' : ''}`}>
                   {msg.role === 'assistant' && (
-                    <div className="chat-msg-avatar">S</div>
+                    <BrandMark size={22} className="chat-msg-avatar" />
                   )}
                   <div className="chat-msg-bubble">
                     <div className="chat-msg-text">{msg.content}</div>
@@ -533,7 +561,7 @@ export default function Sidebar() {
               {/* Loading indicator in chat */}
               {loading && (
                 <div className="chat-msg assistant">
-                  <div className="chat-msg-avatar">S</div>
+                  <BrandMark size={22} className="chat-msg-avatar" />
                   <div className="chat-msg-bubble loading-bubble">
                     <div className="chat-loading-dots">
                       <span></span><span></span><span></span>
@@ -669,11 +697,11 @@ export default function Sidebar() {
                   style={{ transform: modelOpen ? 'rotate(180deg)' : '', transition: 'transform .15s' }} />
               </button>
               {modelOpen && (
-                <div className="model-dropdown-chat">
-                  {MODELS.map(m => (
+                <div className="model-dropdown-chat" role="listbox">
+                  {MODELS.map((m, i) => (
                     <button
                       key={m.id}
-                      className={`model-dropdown-item ${selectedModel === m.id ? 'active' : ''}`}
+                      className={`model-dropdown-item ${selectedModel === m.id ? 'active' : ''} ${i === modelActiveIdx ? 'kbd-focus' : ''}`}
                       onClick={() => {
                         setSelectedModel(m.id);
                         setModelOpen(false);

@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { DEFAULT_MODEL_ID, DEPRECATED_MODEL_IDS } from '@/lib/models';
 
 const AppContext = createContext();
 
@@ -26,7 +27,7 @@ function readStorage(store, key) {
 }
 
 export function AppProvider({ children }) {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const user = session?.user || null;
 
   // Projects State
@@ -64,23 +65,15 @@ export function AppProvider({ children }) {
   // Mobile sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Model selection. DEPRECATED_MODEL_IDS catches model slugs that vanished from
-  // their provider — returning users with one cached in localStorage would
-  // otherwise keep hitting 404 forever.
+  // Model selection. DEPRECATED_MODEL_IDS (in @/lib/models) catches slugs that
+  // vanished from their provider — returning users with one cached in
+  // localStorage would otherwise keep hitting 404 forever.
   const [selectedModel, setSelectedModel] = useState(() => {
-    const DEFAULT = 'gpt-oss-120b';
-    const DEPRECATED_MODEL_IDS = new Set([
-      'qwen-3-235b-a22b-instruct-2507',  // Cerebras removed 2026-05-27
-      'inclusionai/ling-2.6-flash:free', // OpenRouter free tier removed
-      '@cf/openai/gpt-oss-120b',         // Cloudflare slot dropped (poor results)
-      'qwen/qwen3-coder:free',           // OpenRouter free upstream rate-limited
-      'deepseek/deepseek-v4-flash:free', // OpenRouter free upstream rate-limited
-    ]);
     if (typeof window !== 'undefined') {
       const saved = readStorage(localStorage, STORAGE.model);
       if (saved && !DEPRECATED_MODEL_IDS.has(saved)) return saved;
     }
-    return DEFAULT;
+    return DEFAULT_MODEL_ID;
   });
 
   // Persist model selection whenever it changes. Avoids the duplicate
@@ -130,12 +123,15 @@ export function AppProvider({ children }) {
     return () => clearTimeout(projectSaveTimer.current);
   }, [pages, css, js, desc, totalTokens, currentHtml, features]);
 
+  // Wipe per-session state ONLY when NextAuth has definitively resolved to
+  // unauthenticated. Without the status check this fires during the initial
+  // 'loading' phase too, which can clobber in-progress chat the user just
+  // started before next-auth's session call completes.
   useEffect(() => {
-    if (!user) {
-      setChatMessages([]);
-      setImageUrls([]);
-    }
-  }, [user]);
+    if (sessionStatus !== 'unauthenticated') return;
+    setChatMessages([]);
+    setImageUrls([]);
+  }, [sessionStatus]);
 
   const value = {
     user,

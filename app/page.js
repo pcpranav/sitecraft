@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useAppContext } from '@/context/AppContext';
 import AuthModal from '@/components/AuthModal';
+import BrandMark from '@/components/BrandMark';
 
 const PROVIDERS = [
   { name: 'Cerebras', model: 'GPT-OSS 120B' },
@@ -32,7 +33,7 @@ export default function LandingPage() {
     <div className="landing-layout">
       <header className="landing-header">
         <Link href="/" className="landing-logo">
-          <div className="landing-logo-icon">S</div>
+          <BrandMark size={32} className="landing-logo-icon" />
           <div className="landing-logo-name">Sitecraft</div>
         </Link>
         <nav className="landing-nav">
