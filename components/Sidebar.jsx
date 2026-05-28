@@ -118,8 +118,7 @@ function PresetSelect({ value, options, onChange, label }) {
 
 export default function Sidebar() {
   const {
-    setPages, setCss, setJs,
-    desc, setDesc, history, setHistory, setCurrentFile,
+    desc, setDesc, history, setHistory,
     projectId, setProjectId, user, totalTokens, setTotalTokens,
     setIsAuthOpen, sidebarOpen, setSidebarOpen, selectedModel, setSelectedModel,
     chatMessages, setChatMessages, currentHtml, setCurrentHtml,
@@ -242,21 +241,15 @@ export default function Sidebar() {
 
     const { previous, rest } = popHistory(history);
     if (previous) {
-      setCurrentHtml(previous.pages?.['index.html'] || '');
-      setPages(previous.pages || {});
-      setCss(previous.css || '');
-      setJs(previous.js || '');
+      setCurrentHtml(previous.html || previous.pages?.['index.html'] || '');
       setHistory(rest);
     } else {
       setCurrentHtml('');
-      setPages({});
-      setCss('');
-      setJs('');
       setHistory([]);
     }
   };
 
-  const saveToCloud = async (newPages, newCss, newJs, newHistory, descOverride) => {
+  const saveToCloud = async (html, newHistory, descOverride) => {
     if (!user) return;
     // The first turn calls setDesc(text) right before saveToCloud, but React
     // hasn't flushed the state by the time we read `desc` via closure — that's
@@ -266,12 +259,15 @@ export default function Sidebar() {
     const projectName = effectiveDesc.slice(0, 60) || 'Untitled';
     try {
       const headers = { 'Content-Type': 'application/json' };
+      // The /api/projects schema still expects pages/shared_css/shared_js;
+      // build them from currentHtml at the boundary instead of duplicating
+      // the dual-state in React.
       const payload = {
         name: projectName,
         description: effectiveDesc,
-        pages: newPages,
-        shared_css: newCss,
-        shared_js: newJs,
+        pages: { 'index.html': html },
+        shared_css: '',
+        shared_js: '',
         history: newHistory,
       };
       let res;
@@ -424,21 +420,17 @@ export default function Sidebar() {
       };
       setChatMessages([...updatedMessages, assistantMsg]);
 
-      // Update the current HTML and legacy state
+      // Update the current HTML
       setCurrentHtml(html);
-      setPages({ 'index.html': html });
-      setCss('');
-      setJs('');
-      setCurrentFile('index.html');
       setTotalTokens(prev => prev + (data.tokens || 0));
 
       const newHistory = pushHistory(history, {
-        prompt: text, pages: { 'index.html': html }, css: '', js: '', ts: Date.now()
+        prompt: text, html, ts: Date.now()
       });
       setHistory(newHistory);
       // Pass `desc || text` so the first-turn project name comes from the user's
       // prompt instead of the empty stale `desc` state.
-      saveToCloud({ 'index.html': html }, '', '', newHistory, desc || text);
+      saveToCloud(html, newHistory, desc || text);
 
     } catch (e) {
       // Add error message to chat
@@ -466,9 +458,6 @@ export default function Sidebar() {
   const startNew = () => {
     setChatMessages([]);
     setCurrentHtml('');
-    setPages({});
-    setCss('');
-    setJs('');
     setDesc('');
     setHistory([]);
     setFeatures([]);

@@ -9,43 +9,17 @@ const VIEWPORTS = {
 };
 
 export default function PreviewFrame() {
-  const {
-    currentHtml, pages, css, js, currentFile, view,
-    setPages, setCss, setJs, setCurrentHtml,
-  } = useAppContext();
+  const { currentHtml, view, setCurrentHtml } = useAppContext();
   const iframeRef = useRef(null);
   const [imageStatus, setImageStatus] = useState(null); // { total, loaded, failed, failedSrcs }
   const [showImagePanel, setShowImagePanel] = useState(false);
   const [viewport, setViewport] = useState('desktop');
 
-  const hasContent = !!currentHtml || Object.keys(pages).length > 0;
+  const hasContent = !!currentHtml;
+  const displayHtml = currentHtml || '';
 
-  const getDisplayHtml = () => {
-    if (currentHtml) return currentHtml;
-    const htmlContent = pages[currentFile] || '';
-    const isFullDoc = htmlContent.trimStart().toLowerCase().startsWith('<!doctype') || htmlContent.trimStart().toLowerCase().startsWith('<html');
-    if (isFullDoc) return htmlContent;
-    if (htmlContent) {
-      return `<!DOCTYPE html>\n<html>\n<head><style>${css}</style></head>\n<body>\n${htmlContent}\n<script>${js}<\/script>\n</body>\n</html>`;
-    }
-    return '';
-  };
-
-  const handleCodeChange = (e) => {
-    const newVal = e.target.value;
-    if (currentFile === 'shared.css') setCss(newVal);
-    else if (currentFile === 'shared.js') setJs(newVal);
-    else setPages(prev => ({ ...prev, [currentFile]: newVal }));
-  };
-
-  const getCodeValue = () => {
-    if (currentHtml && currentFile === 'index.html') return currentHtml;
-    if (currentFile === 'shared.css') return css;
-    if (currentFile === 'shared.js') return js;
-    return pages[currentFile] || '';
-  };
-
-  const displayHtml = getDisplayHtml();
+  const handleCodeChange = (e) => setCurrentHtml(e.target.value);
+  const getCodeValue = () => currentHtml || '';
 
   // Check image load status after iframe renders
   const checkImages = useCallback(() => {
@@ -94,23 +68,19 @@ export default function PreviewFrame() {
   // Replace failed images with working placeholders
   const fixFailedImages = () => {
     if (!imageStatus?.failedSrcs?.length) return;
-    let html = currentHtml || pages[currentFile] || '';
+    let html = currentHtml || '';
     imageStatus.failedSrcs.forEach((src, i) => {
-      // Extract the part after the domain to identify in source
       const urlObj = (() => { try { return new URL(src); } catch { return null; } })();
       if (!urlObj) return;
       const searchStr = urlObj.pathname + urlObj.search;
-      // Replace with a placehold.co fallback
       const color = ['3b82f6', '8b5cf6', '10b981', 'eab308', 'ef4444'][i % 5];
       const replacement = `https://placehold.co/800x500/${color}/ffffff?text=Image+${i + 1}`;
       html = html.replace(new RegExp(escapeRegExp(src), 'g'), replacement);
-      // Also try matching just the path portion in case src was relative
       if (searchStr) {
         html = html.replace(new RegExp(escapeRegExp(searchStr), 'g'), replacement);
       }
     });
     setCurrentHtml(html);
-    setPages(prev => ({ ...prev, 'index.html': html }));
     setImageStatus(null);
     setShowImagePanel(false);
   };

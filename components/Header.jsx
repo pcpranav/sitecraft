@@ -11,9 +11,9 @@ import JSZip from 'jszip';
 export default function Header() {
   const {
     user, theme, setTheme, view, setView,
-    isAuthOpen, setIsAuthOpen, pages, setPages, setCss, setJs,
+    isAuthOpen, setIsAuthOpen,
     desc, setDesc, setHistory, setProjectId, projectId,
-    sidebarOpen, setSidebarOpen, setCurrentFile,
+    sidebarOpen, setSidebarOpen,
     currentHtml, setCurrentHtml, setChatMessages, setFeatures, setImageUrls,
     chatMessages,
   } = useAppContext();
@@ -60,14 +60,11 @@ export default function Header() {
       const data = await res.json();
       if (res.ok && data.project) {
         const p = data.project;
-        setPages(p.pages || {});
-        setCss(p.shared_css || '');
-        setJs(p.shared_js || '');
         setDesc(p.description || '');
         setHistory(p.history || []);
         setProjectId(p.id);
-        setCurrentFile('index.html');
-        // Restore currentHtml from pages
+        // The cloud schema stores HTML inside p.pages['index.html'] for
+        // backwards compat; the studio only uses currentHtml at runtime.
         const html = p.pages?.['index.html'] || '';
         setCurrentHtml(html);
         // Restore chat if available, otherwise create a summary
@@ -111,9 +108,6 @@ export default function Header() {
   const clearAll = () => {
     setChatMessages([]);
     setCurrentHtml('');
-    setPages({});
-    setCss('');
-    setJs('');
     setDesc('');
     setHistory([]);
     setFeatures([]);
@@ -124,18 +118,7 @@ export default function Header() {
   };
 
   const clearHistory = () => {
-    setHistory([]);
-    setChatMessages([]);
-    setCurrentHtml('');
-    setPages({});
-    setCss('');
-    setJs('');
-    setDesc('');
-    setFeatures([]);
-    setImageUrls([]);
-    setProjectId(null);
-    sessionStorage.removeItem('SITECRAFT_PROJECT');
-    sessionStorage.removeItem('WEBCRAFT_PROJECT'); // legacy
+    clearAll();
     setMenuOpen(false);
   };
 
@@ -191,7 +174,7 @@ export default function Header() {
             setIsAuthOpen(true);
             return;
           }
-          const exportHtml = currentHtml || Object.values(pages)[0];
+          const exportHtml = currentHtml;
           if (!exportHtml) {
             alert('No website to export. Generate one first.');
             return;

@@ -46,15 +46,10 @@ export function AppProvider({ children }) {
   // Uploaded image URLs
   const [imageUrls, setImageUrls] = useState([]);
 
-  // Legacy state for backward compat with cloud save
-  const [pages, setPages] = useState({});
-  const [css, setCss] = useState('');
-  const [js, setJs] = useState('');
   const [desc, setDesc] = useState('');
   const [history, setHistory] = useState([]);
 
   // UI State
-  const [currentFile, setCurrentFile] = useState('index.html');
   const [view, setView] = useState('preview');
   const [theme, setTheme] = useState('dark');
   const [totalTokens, setTotalTokens] = useState(0);
@@ -96,12 +91,12 @@ export function AppProvider({ children }) {
       const raw = readStorage(sessionStorage, STORAGE.project);
       if (raw) {
         const data = JSON.parse(raw);
-        setPages(data.pages || {});
-        setCss(data.css || '');
-        setJs(data.js || '');
+        // currentHtml is the single source of truth now; legacy snapshots may
+        // have stored it under data.pages['index.html'] instead.
+        const html = data.currentHtml || data.pages?.['index.html'] || '';
+        setCurrentHtml(html);
         setDesc(data.desc || '');
         setTotalTokens(data.totalTokens || 0);
-        setCurrentHtml(data.currentHtml || '');
         setFeatures(data.features || []);
       }
     } catch(e) {}
@@ -116,12 +111,12 @@ export function AppProvider({ children }) {
     projectSaveTimer.current = setTimeout(() => {
       try {
         sessionStorage.setItem(STORAGE.project.current, JSON.stringify({
-          pages, css, js, desc, totalTokens, currentHtml, features
+          currentHtml, desc, totalTokens, features
         }));
       } catch(e) {}
     }, 300);
     return () => clearTimeout(projectSaveTimer.current);
-  }, [pages, css, js, desc, totalTokens, currentHtml, features]);
+  }, [desc, totalTokens, currentHtml, features]);
 
   // Wipe per-session state ONLY when NextAuth has definitively resolved to
   // unauthenticated. Without the status check this fires during the initial
@@ -136,8 +131,8 @@ export function AppProvider({ children }) {
   const value = {
     user,
     projectId, setProjectId, projectsList, setProjectsList,
-    pages, setPages, css, setCss, js, setJs, desc, setDesc, history, setHistory,
-    currentFile, setCurrentFile, view, setView, theme, setTheme, totalTokens, setTotalTokens,
+    desc, setDesc, history, setHistory,
+    view, setView, theme, setTheme, totalTokens, setTotalTokens,
     isAuthOpen, setIsAuthOpen,
     sidebarOpen, setSidebarOpen,
     selectedModel, setSelectedModel,

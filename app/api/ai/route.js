@@ -16,10 +16,14 @@ export const maxDuration = 300;
 
 // ── PROVIDER CONFIG ────────────────────────────────────────────────────────
 // Each entry resolves credentials at call time (not module load) so the
-// route still boots when only some keys are populated.
+// route still boots when only some keys are populated. maxTokens is the
+// per-provider effective output cap — picked conservatively from each
+// provider's docs so we don't trip into "max_tokens exceeds model limit"
+// errors. Request body max_tokens is clamped to this.
 const PROVIDERS = {
   groq: {
     label: 'Groq',
+    maxTokens: 8000,
     resolve: () => {
       const apiKey = process.env.GROQ_API_KEY;
       if (!apiKey) return { error: 'Groq API key not configured. Get one free at console.groq.com' };
@@ -28,6 +32,7 @@ const PROVIDERS = {
   },
   cerebras: {
     label: 'Cerebras',
+    maxTokens: 16000,
     resolve: () => {
       const apiKey = process.env.CEREBRAS_API_KEY;
       if (!apiKey) return { error: 'Cerebras API key not configured. Get one at cloud.cerebras.ai' };
@@ -36,6 +41,7 @@ const PROVIDERS = {
   },
   openrouter: {
     label: 'OpenRouter',
+    maxTokens: 8000,
     resolve: () => {
       const apiKey = process.env.OPENROUTER_API_KEY;
       if (!apiKey) return { error: 'OpenRouter API key not configured. Get one at openrouter.ai/keys' };
@@ -44,6 +50,7 @@ const PROVIDERS = {
   },
   cloudflare: {
     label: 'Cloudflare Workers AI',
+    maxTokens: 8000,
     resolve: () => {
       const apiKey = process.env.CF_AI_TOKEN;
       const accountId = process.env.CF_ACCOUNT_ID;
@@ -76,9 +83,7 @@ export async function POST(req) {
     provider = 'cerebras',
     model = DEFAULT_MODEL_ID,
     messages,
-    // Default high enough to fit a substantive single-page site; without this
-    // some providers default to ~1K and clip the HTML mid-tag → blank preview.
-    max_tokens = 8000,
+    max_tokens: clientMaxTokens,
     features = [],
     imageUrls = [],
     stylePreset,
@@ -89,6 +94,11 @@ export async function POST(req) {
   if (!providerCfg) {
     return NextResponse.json({ error: `Unknown provider: ${provider}` }, { status: 400 });
   }
+
+  // Clamp the requested max_tokens to the provider's effective cap. If the
+  // client didn't pass one, just use the cap directly — that's typically
+  // the right ceiling for a single-page HTML generation.
+  const max_tokens = Math.min(clientMaxTokens || providerCfg.maxTokens, providerCfg.maxTokens);
 
   if (Array.isArray(messages) && messages.length > 50) {
     return NextResponse.json({ error: 'Conversation too long. Start a new chat.' }, { status: 400 });
@@ -108,11 +118,19 @@ export async function POST(req) {
       'Connection': 'keep-alive',
     };
 
+    // If the client closes the tab mid-generation, propagate that to the
+    // upstream fetch so we stop paying for completions nobody will see.
+    const abortCtrl = new AbortController();
+    if (req.signal) {
+      if (req.signal.aborted) abortCtrl.abort();
+      else req.signal.addEventListener('abort', () => abortCtrl.abort(), { once: true });
+    }
+
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
         const send = (data) => {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+          try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)); } catch {}
         };
 
         try {
@@ -122,6 +140,7 @@ export async function POST(req) {
             system: systemPrompt,
             messages: finalMessages,
             max_tokens,
+            signal: abortCtrl.signal,
           });
 
           const rawText = (result.content?.[0]?.text || '').trim();
@@ -199,7 +218,7 @@ function extractHtml(rawText) {
 // One retry on 429/5xx with a short backoff. Most free-tier failures are
 // transient capacity issues — a single retry absorbs the majority of them
 // without spinning up a serious retry library.
-async function callOpenAICompat({ providerCfg, model, system, messages, max_tokens }) {
+async function callOpenAICompat({ providerCfg, model, system, messages, max_tokens, signal }) {
   const resolved = providerCfg.resolve();
   if (resolved.error) throw Object.assign(new Error(resolved.error), { status: 503 });
   const { baseURL, apiKey } = resolved;
@@ -219,6 +238,7 @@ async function callOpenAICompat({ providerCfg, model, system, messages, max_toke
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify(requestBody),
+      signal,
     });
     const rawBody = await res.text();
     let data = null;
