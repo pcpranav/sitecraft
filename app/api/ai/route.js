@@ -73,7 +73,7 @@ export async function POST(req) {
 
   const {
     provider = 'cerebras',
-    model = 'qwen-3-235b-a22b-instruct-2507',
+    model = 'gpt-oss-120b',
     messages,
     max_tokens,
     features = [],

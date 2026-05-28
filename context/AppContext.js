@@ -43,12 +43,22 @@ export function AppProvider({ children }) {
   // Mobile sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Model selection
+  // Model selection. DEPRECATED_MODEL_IDS catches model slugs that vanished from
+  // their provider — returning users with one cached in localStorage would
+  // otherwise keep hitting 404 forever.
   const [selectedModel, setSelectedModel] = useState(() => {
+    const DEFAULT = 'gpt-oss-120b';
+    const DEPRECATED_MODEL_IDS = new Set([
+      'qwen-3-235b-a22b-instruct-2507',  // Cerebras removed 2026-05-27
+      'inclusionai/ling-2.6-flash:free', // OpenRouter free tier removed
+      '@cf/openai/gpt-oss-120b',         // Cloudflare slot dropped (poor results)
+      'qwen/qwen3-coder:free',           // OpenRouter free upstream rate-limited
+    ]);
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('WEBCRAFT_MODEL') || 'qwen-3-235b-a22b-instruct-2507';
+      const saved = localStorage.getItem('WEBCRAFT_MODEL');
+      if (saved && !DEPRECATED_MODEL_IDS.has(saved)) return saved;
     }
-    return 'qwen-3-235b-a22b-instruct-2507';
+    return DEFAULT;
   });
 
   useEffect(() => {

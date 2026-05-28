@@ -5,9 +5,9 @@ import { useAppContext } from '@/context/AppContext';
 import AuthModal from '@/components/AuthModal';
 
 const PROVIDERS = [
-  { name: 'Cerebras', model: 'Qwen 3 235B' },
+  { name: 'Cerebras', model: 'GPT-OSS 120B' },
   { name: 'Groq', model: 'Llama 4 Scout' },
-  { name: 'OpenRouter', model: 'Qwen3 Coder' },
+  { name: 'OpenRouter', model: 'DeepSeek V4 Flash' },
   { name: 'Cloudflare', model: 'Qwen3 30B' },
 ];
 
