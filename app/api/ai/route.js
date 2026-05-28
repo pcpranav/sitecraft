@@ -133,14 +133,24 @@ export async function POST(req) {
           try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)); } catch {}
         };
 
+        // Throttle progress events to the client — sending one per upstream
+        // delta would be 100s of events/sec. ~5/sec is enough for a fluid feel.
+        let lastProgress = 0;
+
         try {
-          const result = await callOpenAICompat({
+          const result = await streamOpenAICompat({
             providerCfg,
             model,
             system: systemPrompt,
             messages: finalMessages,
             max_tokens,
             signal: abortCtrl.signal,
+            onDelta: (_delta, totalChars) => {
+              const now = Date.now();
+              if (now - lastProgress < 200) return;
+              lastProgress = now;
+              send({ progress: true, chars: totalChars });
+            },
           });
 
           const rawText = (result.content?.[0]?.text || '').trim();
@@ -214,11 +224,12 @@ function extractHtml(rawText) {
   return candidate.trim();
 }
 
-// ── OpenAI-compatible call (Groq, Cerebras, OpenRouter, Cloudflare) ───────
-// One retry on 429/5xx with a short backoff. Most free-tier failures are
-// transient capacity issues — a single retry absorbs the majority of them
-// without spinning up a serious retry library.
-async function callOpenAICompat({ providerCfg, model, system, messages, max_tokens, signal }) {
+// ── OpenAI-compatible streaming call ──────────────────────────────────────
+// Requests stream:true upstream, parses the SSE response, calls onDelta for
+// each content chunk, and returns the final accumulated text + usage.
+// One retry on 429/5xx with a short backoff — most free-tier failures are
+// transient capacity issues that a single retry absorbs.
+async function streamOpenAICompat({ providerCfg, model, system, messages, max_tokens, signal, onDelta }) {
   const resolved = providerCfg.resolve();
   if (resolved.error) throw Object.assign(new Error(resolved.error), { status: 503 });
   const { baseURL, apiKey } = resolved;
@@ -227,47 +238,79 @@ async function callOpenAICompat({ providerCfg, model, system, messages, max_toke
   if (system) chatMessages.push({ role: 'system', content: system });
   chatMessages.push(...messages);
 
-  const requestBody = { model, messages: chatMessages };
+  const requestBody = { model, messages: chatMessages, stream: true };
   if (max_tokens) requestBody.max_tokens = max_tokens;
 
-  const attempt = async () => {
-    const res = await fetch(`${baseURL}/chat/completions`, {
+  const attemptStream = async () =>
+    fetch(`${baseURL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
+        'Accept': 'text/event-stream',
       },
       body: JSON.stringify(requestBody),
       signal,
     });
-    const rawBody = await res.text();
-    let data = null;
-    try { data = rawBody ? JSON.parse(rawBody) : null; } catch {}
-    return { res, data, rawBody };
-  };
 
-  let { res, data, rawBody } = await attempt();
-  const isRetryable = !res.ok && (res.status === 429 || res.status >= 500);
-  if (isRetryable) {
+  let res = await attemptStream();
+  if (!res.ok && (res.status === 429 || res.status >= 500)) {
     await new Promise(r => setTimeout(r, 1500));
-    ({ res, data, rawBody } = await attempt());
+    res = await attemptStream();
   }
 
   if (!res.ok) {
+    const rawBody = await res.text();
+    let data = null;
+    try { data = rawBody ? JSON.parse(rawBody) : null; } catch {}
     const upstream =
       data?.error?.message ||
       (typeof data?.error === 'string' ? data.error : null) ||
       (rawBody ? rawBody.slice(0, 200).replace(/\s+/g, ' ') : null);
     throw new Error(`${providerCfg.label} error ${res.status}${upstream ? `: ${upstream}` : ''}`);
   }
-  if (!data) throw new Error(`${providerCfg.label} returned invalid JSON (${res.status})`);
 
-  const text = data.choices?.[0]?.message?.content ?? '';
+  // Parse upstream SSE. Each "data: {...}" line is a delta event; "[DONE]"
+  // marks end-of-stream. Some providers send usage in the final event.
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+  let usage = { input_tokens: 0, output_tokens: 0 };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let nl;
+    while ((nl = buffer.indexOf('\n')) !== -1) {
+      const line = buffer.slice(0, nl).trimEnd();
+      buffer = buffer.slice(nl + 1);
+      if (!line.startsWith('data: ')) continue;
+      const payload = line.slice(6).trim();
+      if (payload === '[DONE]') continue;
+      try {
+        const json = JSON.parse(payload);
+        const delta = json.choices?.[0]?.delta?.content;
+        if (delta) {
+          fullText += delta;
+          if (onDelta) onDelta(delta, fullText.length);
+        }
+        if (json.usage) {
+          usage = {
+            input_tokens: json.usage.prompt_tokens ?? 0,
+            output_tokens: json.usage.completion_tokens ?? 0,
+          };
+        }
+      } catch {
+        // Ignore malformed lines — some providers occasionally send keep-alives.
+      }
+    }
+  }
+
   return {
-    content: [{ type: 'text', text }],
-    usage: {
-      input_tokens: data.usage?.prompt_tokens ?? 0,
-      output_tokens: data.usage?.completion_tokens ?? 0,
-    },
+    content: [{ type: 'text', text: fullText }],
+    usage,
   };
 }

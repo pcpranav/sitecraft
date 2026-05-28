@@ -377,22 +377,32 @@ export default function Sidebar() {
         throw new Error(errMsg);
       }
 
-      // Parse SSE stream response. Last data: line wins.
+      // Parse SSE stream. The route emits two kinds of events:
+      //   { progress: true, chars: N }    — live token-write progress
+      //   { html, tokens, done: true }    — final result
+      //   { error, done: true }           — final error
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      let data = null;
+      let finalData = null;
 
       const consume = (chunk) => {
         buffer += chunk;
-        // SSE messages end with a blank line; split on that.
         const events = buffer.split(/\r?\n\r?\n/);
         buffer = events.pop() || '';
         for (const ev of events) {
           for (const line of ev.split(/\r?\n/)) {
-            if (line.startsWith('data: ')) {
-              try { data = JSON.parse(line.slice(6)); } catch {}
-            }
+            if (!line.startsWith('data: ')) continue;
+            try {
+              const json = JSON.parse(line.slice(6));
+              if (json.progress) {
+                const chars = json.chars || 0;
+                const fmt = chars < 1000 ? `${chars}` : `${(chars / 1000).toFixed(1)}k`;
+                setLoadingMsg(`Writing… ${fmt} chars`);
+              } else {
+                finalData = json;
+              }
+            } catch {}
           }
         }
       };
@@ -402,13 +412,12 @@ export default function Sidebar() {
         if (done) break;
         consume(decoder.decode(value, { stream: true }));
       }
-      // Flush any final event without trailing blank line.
       if (buffer.trim()) consume('\n\n');
 
-      if (!data) throw new Error('No response received from server');
-      if (data.error) throw new Error(data.error);
+      if (!finalData) throw new Error('No response received from server');
+      if (finalData.error) throw new Error(finalData.error);
 
-      const html = data.html || '';
+      const html = finalData.html || '';
 
       // Add assistant message
       const assistantMsg = {
@@ -422,7 +431,7 @@ export default function Sidebar() {
 
       // Update the current HTML
       setCurrentHtml(html);
-      setTotalTokens(prev => prev + (data.tokens || 0));
+      setTotalTokens(prev => prev + (finalData.tokens || 0));
 
       const newHistory = pushHistory(history, {
         prompt: text, html, ts: Date.now()
