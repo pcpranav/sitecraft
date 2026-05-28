@@ -105,7 +105,7 @@ h1 { font-weight: 700; letter-spacing: -0.03em; }
 /* ── HEADER ── */
 .header {
   display: flex; align-items: center; gap: 12px;
-  padding: 0 1rem; height: 52px;
+  padding: 0 1.25rem; height: 64px;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
   flex-shrink: 0; position: relative; z-index: 20;
@@ -123,7 +123,7 @@ h1 { font-weight: 700; letter-spacing: -0.03em; }
   flex-shrink: 0;
 }
 .header-project-title {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--secondary);
   font-weight: 500;
   letter-spacing: -0.01em;
@@ -144,21 +144,21 @@ select:focus-visible {
 }
 
 .logo {
-  display: flex; align-items: center; gap: 9px;
-  font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; gap: 11px;
+  font-size: 16px; font-weight: 700;
   color: var(--heading); letter-spacing: -.3px;
   text-decoration: none; user-select: none;
 }
 .logo-icon {
-  width: 28px; height: 28px;
+  width: 34px; height: 34px;
   background: var(--heading);
-  border-radius: 7px;
+  border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px; color: var(--bg); flex-shrink: 0;
+  font-size: 16px; color: var(--bg); flex-shrink: 0;
 }
 .logo-stack { display: flex; flex-direction: column; gap: 0; }
-.logo-name { font-size: 13px; font-weight: 600; color: var(--heading); letter-spacing: -.4px; }
-.logo-sub { font-size: 9px; font-family: var(--font-mono); color: var(--subtle); letter-spacing: .1em; text-transform: uppercase; margin-top: -1px; }
+.logo-name { font-size: 15px; font-weight: 600; color: var(--heading); letter-spacing: -.4px; }
+.logo-sub { font-size: 10px; font-family: var(--font-mono); color: var(--subtle); letter-spacing: .1em; text-transform: uppercase; margin-top: -1px; }
 
 .hdr-center { flex: 1; display: flex; align-items: center; justify-content: center; }
 .hdr-right { display: flex; align-items: center; gap: 6px; }
@@ -1938,7 +1938,7 @@ pre { font-family: var(--font-mono); font-size: 11.5px; color: var(--body); whit
   .sidebar-toggle { display: flex; }
 
   /* Header — compact */
-  .header { gap: 8px; padding: 0 12px; height: 48px; }
+  .header { gap: 8px; padding: 0 12px; height: 56px; }
   .logo-text span { display: none; }
   .hdr-btn .export-label { display: none; }
 

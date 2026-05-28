@@ -4,9 +4,9 @@ import { useAppContext } from '@/context/AppContext';
 
 const MODELS = [
   { id: 'qwen-3-235b-a22b-instruct-2507', provider: 'cerebras', name: 'Cerebras · Qwen 3 235B', desc: '235B MoE · fastest large-model inference', color: '#f97316' },
-  { id: 'inclusionai/ling-2.6-flash:free', provider: 'openrouter', name: 'Ling-2.6 Flash', desc: 'Fast · same family as 1T flagship', color: '#10b981' },
+  { id: 'qwen/qwen3-coder:free', provider: 'openrouter', name: 'OpenRouter · Qwen3 Coder', desc: 'Free · strongest free coding model · 1M ctx', color: '#10b981' },
   { id: 'meta-llama/llama-4-scout-17b-16e-instruct', provider: 'groq', name: 'Groq · Llama 4 Scout', desc: '17B-active MoE · 750 tok/s', color: '#eab308' },
-  { id: '@cf/openai/gpt-oss-120b', provider: 'cloudflare', name: 'Cloudflare · GPT-OSS 120B', desc: '120B · production-tier', color: '#f59e0b' },
+  { id: '@cf/qwen/qwen3-30b-a3b-fp8', provider: 'cloudflare', name: 'Cloudflare · Qwen3 30B', desc: '30B MoE · 3B active · fast', color: '#f59e0b' },
 ];
 
 const FEATURE_OPTIONS = [

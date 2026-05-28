@@ -5,6 +5,7 @@
 // PROVIDERS resolves the base URL and credentials.
 
 import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 import { buildSystemPrompt } from '@/lib/system-prompt';
 
 // Extend serverless function timeout. Vercel clamps this to plan max:
@@ -56,6 +57,13 @@ const PROVIDERS = {
 
 // ── ROUTE HANDLER ─────────────────────────────────────────────────────────
 export async function POST(req) {
+  // Require an authenticated session — the studio UI is gated, and so is the
+  // model proxy behind it, so a logged-out caller can't hit the providers directly.
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Sign in to generate sites.' }, { status: 401 });
+  }
+
   let body;
   try {
     body = await req.json();

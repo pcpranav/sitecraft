@@ -1,5 +1,5 @@
 "use client";
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useAppContext } from '@/context/AppContext';
 import AuthModal from '@/components/AuthModal';
@@ -7,8 +7,8 @@ import AuthModal from '@/components/AuthModal';
 const PROVIDERS = [
   { name: 'Cerebras', model: 'Qwen 3 235B' },
   { name: 'Groq', model: 'Llama 4 Scout' },
-  { name: 'OpenRouter', model: 'Ling-2.6 Flash' },
-  { name: 'Cloudflare', model: 'GPT-OSS 120B' },
+  { name: 'OpenRouter', model: 'Qwen3 Coder' },
+  { name: 'Cloudflare', model: 'Qwen3 30B' },
 ];
 
 const FEATURES = [
@@ -20,6 +20,13 @@ const FEATURES = [
 
 export default function LandingPage() {
   const { user, isAuthOpen, setIsAuthOpen } = useAppContext();
+
+  // Bounced from a protected route (?login=1) → prompt to sign in.
+  useEffect(() => {
+    if (user) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('login') === '1') setIsAuthOpen(true);
+  }, [user, setIsAuthOpen]);
 
   return (
     <div className="landing-layout">
@@ -54,9 +61,15 @@ export default function LandingPage() {
             draft. Pick a different model anytime and iterate via chat.
           </p>
           <div className="hero-ctas">
-            <Link href="/studio" className="btn btn-primary hero-btn">
-              Start Building
-            </Link>
+            {user ? (
+              <Link href="/studio" className="btn btn-primary hero-btn">
+                Start Building
+              </Link>
+            ) : (
+              <button className="btn btn-primary hero-btn" onClick={() => setIsAuthOpen(true)}>
+                Start Building
+              </button>
+            )}
             {!user && (
               <button className="hero-ghost-btn" onClick={() => setIsAuthOpen(true)}>
                 Sign in free →
