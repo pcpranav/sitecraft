@@ -206,6 +206,17 @@ export default function Header() {
           &lt;&gt; code
         </button>
 
+        <a
+          href="https://github.com/pcpranav/sitecraft"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="theme-btn"
+          title="View source on GitHub"
+          aria-label="GitHub"
+        >
+          <Icon name="github" size={16} />
+        </a>
+
         <button className="theme-btn" onClick={toggleTheme}>
           {theme === 'dark' ? '☾' : '☼'}
         </button>

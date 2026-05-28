@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { signIn } from 'next-auth/react';
+import BrandMark from '@/components/BrandMark';
 
 export default function AuthModal({ isOpen, onClose }) {
   const [error, setError] = useState('');
@@ -12,7 +13,9 @@ export default function AuthModal({ isOpen, onClose }) {
     setError('');
     setLoading(true);
     try {
-      await signIn('google', { callbackUrl: '/studio' });
+      // Land on the projects home (which "/" now serves for logged-in users)
+      // instead of dropping users straight into a blank studio.
+      await signIn('google', { callbackUrl: '/' });
     } catch (err) {
       setError(err.message || 'Google Authentication failed');
       setLoading(false);
@@ -25,7 +28,7 @@ export default function AuthModal({ isOpen, onClose }) {
     }}>
       <div className="modal">
         <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
-        <div className="modal-logo">S</div>
+        <BrandMark size={48} className="modal-logo" />
         <h3>Sign in</h3>
         <p className="modal-desc">
           Sign in to export projects and save to the cloud.

@@ -1,9 +1,11 @@
 "use client";
-import React, { useEffect } from 'react';
-import Link from 'next/link';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useAppContext } from '@/context/AppContext';
 import AuthModal from '@/components/AuthModal';
-import BrandMark from '@/components/BrandMark';
+import Icon from '@/components/Icon';
+import { PublicHeader, PublicFooter } from '@/components/PublicChrome';
 
 const PROVIDERS = [
   { name: 'Cerebras', model: 'GPT-OSS 120B' },
@@ -21,7 +23,147 @@ const FEATURES = [
   { title: 'Live preview',       desc: 'Watch the page build in the iframe as the model writes it, not after.' },
 ];
 
-export default function LandingPage() {
+// Root route. Auth-aware: signed-in users land on the projects home; everyone
+// else sees the marketing page. The decision is based on NextAuth's resolved
+// session status (not just `user`), so we don't flash marketing during the
+// 'loading' phase on a reload while signed in.
+export default function Page() {
+  const { status } = useSession();
+  const { user } = useAppContext();
+
+  if (status === 'loading') {
+    return <div className="page-loading" aria-hidden="true" />;
+  }
+  if (status === 'authenticated' && user) {
+    return <ProjectsHome />;
+  }
+  return <Marketing />;
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// PROJECTS HOME — what signed-in users see on /
+// ───────────────────────────────────────────────────────────────────────────
+
+function ProjectsHome() {
+  const {
+    user, setDesc, setHistory, setProjectId,
+    setCurrentHtml, setChatMessages, setFeatures, setImageUrls,
+  } = useAppContext();
+  const router = useRouter();
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [opening, setOpening] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/projects')
+      .then(r => r.json())
+      .then(data => { if (!cancelled) setProjects(data.projects || []); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const openProject = async (proj) => {
+    setOpening(proj.id);
+    try {
+      const res = await fetch(`/api/projects/${proj.id}`);
+      const data = await res.json();
+      if (res.ok && data.project) {
+        const p = data.project;
+        setDesc(p.description || '');
+        setHistory(p.history || []);
+        setProjectId(p.id);
+        setFeatures([]);
+        setImageUrls([]);
+        setCurrentHtml(p.pages?.['index.html'] || '');
+        setChatMessages(p.chatMessages || [
+          { id: 1, role: 'user', content: p.description || 'Loaded project', timestamp: Date.now() },
+          { id: 2, role: 'assistant', content: 'Project loaded. Ask me to make changes.', timestamp: Date.now() },
+        ]);
+        router.push('/studio');
+      }
+    } finally {
+      setOpening(null);
+    }
+  };
+
+  const newProject = () => {
+    setDesc('');
+    setHistory([]);
+    setProjectId(null);
+    setCurrentHtml('');
+    setChatMessages([]);
+    setFeatures([]);
+    setImageUrls([]);
+    router.push('/studio');
+  };
+
+  const fmtDate = (s) => {
+    if (!s) return '';
+    try { return new Date(s).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
+    catch { return ''; }
+  };
+
+  const firstName = (user?.name || '').split(' ')[0];
+
+  return (
+    <div className="landing-layout">
+      <PublicHeader />
+      <main className="home-main">
+        <div className="home-head">
+          <div>
+            <p className="hero-eyebrow">YOUR PROJECTS</p>
+            <h1 className="home-title">
+              {firstName ? `Welcome back, ${firstName}.` : 'Welcome back.'}
+            </h1>
+            <p className="home-subtitle">
+              Open one to continue refining, or start something new.
+            </p>
+          </div>
+          <button className="btn btn-primary home-new-btn" onClick={newProject}>
+            <Icon name="plus" size={14} />
+            New project
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="home-empty"><div className="gen-spinner" /></div>
+        ) : projects.length === 0 ? (
+          <div className="home-empty">
+            <p>No projects yet.</p>
+            <button className="btn btn-primary" onClick={newProject}>Create your first</button>
+          </div>
+        ) : (
+          <div className="projects-grid">
+            {projects.map(p => (
+              <button
+                key={p.id}
+                className="project-card"
+                onClick={() => openProject(p)}
+                disabled={opening === p.id}
+              >
+                <div className="project-card-title">{p.name || 'Untitled'}</div>
+                <div className="project-card-desc">{(p.description || '').slice(0, 140)}</div>
+                <div className="project-card-meta">
+                  <span>{fmtDate(p.updated_at || p.created_at)}</span>
+                  {opening === p.id ? <span>Opening…</span> : <span className="project-card-arrow">→</span>}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </main>
+      <PublicFooter />
+    </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// MARKETING — what signed-out users see on /
+// ───────────────────────────────────────────────────────────────────────────
+
+function Marketing() {
   const { user, isAuthOpen, setIsAuthOpen } = useAppContext();
 
   // Bounced from a protected route (?login=1) → prompt to sign in.
@@ -33,27 +175,7 @@ export default function LandingPage() {
 
   return (
     <div className="landing-layout">
-      <header className="landing-header">
-        <Link href="/" className="landing-logo">
-          <BrandMark size={32} className="landing-logo-icon" />
-          <div className="landing-logo-name">Sitecraft</div>
-        </Link>
-        <nav className="landing-nav">
-          {user ? (
-            <Link href="/studio" className="btn btn-primary">Open Studio →</Link>
-          ) : (
-            <>
-              <button className="landing-login-btn" onClick={() => setIsAuthOpen(true)}>
-                Log in
-              </button>
-              <button className="btn btn-primary landing-cta-btn" onClick={() => setIsAuthOpen(true)}>
-                Get Started
-              </button>
-            </>
-          )}
-        </nav>
-      </header>
-
+      <PublicHeader showCTA />
       <main className="hero">
         <div className="hero-content">
           <p className="hero-eyebrow">FREE & OPEN-SOURCE · AI WEBSITE BUILDER</p>
@@ -64,20 +186,12 @@ export default function LandingPage() {
             draft. Pick a different model anytime and iterate via chat.
           </p>
           <div className="hero-ctas">
-            {user ? (
-              <Link href="/studio" className="btn btn-primary hero-btn">
-                Start Building
-              </Link>
-            ) : (
-              <button className="btn btn-primary hero-btn" onClick={() => setIsAuthOpen(true)}>
-                Start Building
-              </button>
-            )}
-            {!user && (
-              <button className="hero-ghost-btn" onClick={() => setIsAuthOpen(true)}>
-                Sign in free →
-              </button>
-            )}
+            <button className="btn btn-primary hero-btn" onClick={() => setIsAuthOpen(true)}>
+              Start Building
+            </button>
+            <button className="hero-ghost-btn" onClick={() => setIsAuthOpen(true)}>
+              Sign in free →
+            </button>
           </div>
 
           <div className="provider-strip">
@@ -95,8 +209,6 @@ export default function LandingPage() {
         </div>
 
         <div className="hero-mockup">
-          {/* Prompt → output. Doesn't pretend to be the studio chrome; shows
-              the value prop instead: a sentence in, a real-looking page out. */}
           <div className="mock-prompt-row">
             <span className="mock-prompt-tag">prompt</span>
             <span className="mock-prompt-text">
@@ -153,18 +265,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="landing-footer">
-        <span>© {new Date().getFullYear()} Sitecraft</span>
-        {user ? (
-          <Link href="/studio" className="landing-login-btn">Open Studio →</Link>
-        ) : (
-          <button className="landing-login-btn" onClick={() => setIsAuthOpen(true)}>
-            Get Started for free →
-          </button>
-        )}
-      </footer>
+      <PublicFooter />
 
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </div>
   );
 }
+
