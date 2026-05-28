@@ -33,7 +33,7 @@ export function PublicHeader({ showCTA = false, onSignInClick }) {
           title="GitHub"
           aria-label="GitHub"
         >
-          <Icon name="github" size={16} />
+          <Icon name="github" size={18} />
         </a>
         {user ? (
           <>
