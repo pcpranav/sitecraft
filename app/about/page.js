@@ -58,9 +58,26 @@ export default function AboutPage() {
               href="https://pranavs-garage.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
-              className="hero-ghost-btn"
+              style={{
+                fontFamily: 'var(--font-mono), ui-monospace, monospace',
+                fontSize: '10px',
+                fontWeight: 600,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                padding: '8px 16px',
+                background: '#F59E0B',
+                color: '#0a0a0a',
+                borderRadius: '2px',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#fbbf24'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#F59E0B'; }}
             >
-              See all my builds →
+              Visit the Garage →
             </a>
           </div>
         </section>
