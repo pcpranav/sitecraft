@@ -54,6 +54,14 @@ export default function AboutPage() {
             >
               Browse issues →
             </a>
+            <a
+              href="https://pranavs-garage.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hero-ghost-btn"
+            >
+              See all my builds →
+            </a>
           </div>
         </section>
 
